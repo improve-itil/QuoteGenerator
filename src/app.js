@@ -823,6 +823,11 @@
       populateSalespersonSettingsForm();
     }
 
+    if (["templateId", "courseCount", "includeLms"].includes(field.name)) {
+      syncPriceListDiscount();
+      populateForm();
+    }
+
     if (shouldRefreshPricingItems) {
       resetPricingItems();
     }
@@ -999,6 +1004,10 @@
   function resetPricingItems() {
     quote.pricingItems = buildDefaultPricingItems(quote);
     quote.pricingItemsEdited = false;
+  }
+
+  function syncPriceListDiscount() {
+    quote.discountPercent = quote.includeLms && quote.courseCount >= 4 ? 5 : 0;
   }
 
   async function showClientLink() {
