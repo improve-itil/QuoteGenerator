@@ -1212,7 +1212,7 @@
       await saveSignedQuoteToSupabase(signedRecord);
       await saveSignedQuoteToLocalServer(signedRecord);
       renderPreview();
-      await showAppAlert("ההצעה נשמרה", "ההצעה החתומה נשמרה במאגר ההצעות החתומות.");
+      await showAppAlert("ההצעה החתומה נשלחה", "ניתן לסגור את החלון.");
     } finally {
       sendButton.disabled = false;
       sendButton.textContent = "מאשר/ת את ההצעה ושולח/ת חתימה";
