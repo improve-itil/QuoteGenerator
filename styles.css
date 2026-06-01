@@ -215,9 +215,18 @@ button.is-confirmed {
 
 .salesperson-settings-fields {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.3fr) auto;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(180px, 1fr) minmax(220px, 1.2fr) repeat(3, max-content);
   gap: 10px;
   align-items: end;
+}
+
+.salesperson-settings-fields > label.wide {
+  grid-column: auto;
+}
+
+.salesperson-settings-fields > button {
+  justify-self: start;
+  white-space: nowrap;
 }
 
 .template-settings-card {
@@ -623,6 +632,117 @@ select:focus {
   font-size: 14px;
 }
 
+.client-logos-editor {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.client-logos-editor[hidden] {
+  display: none;
+}
+
+.client-logos-list {
+  display: grid;
+  gap: 10px;
+}
+
+.client-logo-item {
+  display: grid;
+  grid-template-columns: 30px 72px minmax(0, 1fr) 66px;
+  grid-template-areas:
+    "order thumb name size"
+    "order thumb source source"
+    "order thumb file remove";
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbfd;
+}
+
+.client-logo-order {
+  grid-area: order;
+  display: grid;
+  gap: 4px;
+  align-self: center;
+}
+
+.client-logo-order button {
+  width: 28px;
+  min-height: 24px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.client-logo-order button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.client-logo-thumb {
+  grid-area: thumb;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.client-logo-thumb img {
+  max-width: 58px;
+  max-height: 40px;
+  object-fit: contain;
+}
+
+.client-logo-name {
+  grid-area: name;
+}
+
+.client-logo-source {
+  grid-area: source;
+}
+
+.client-logo-file {
+  grid-area: file;
+}
+
+.client-logo-size {
+  grid-area: size;
+}
+
+.client-logo-item label {
+  min-width: 0;
+}
+
+.client-logo-item input {
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.client-logo-size input {
+  text-align: center;
+}
+
+.client-logo-file input {
+  font-size: 11px;
+}
+
+.client-logo-remove {
+  grid-area: remove;
+}
+
+.client-logo-remove {
+  min-height: 38px;
+}
+
 .custom-items {
   display: grid;
   gap: 10px;
@@ -983,6 +1103,34 @@ select:focus {
   margin: 38px auto 0;
 }
 
+.clients-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px 30px;
+  width: min(100%, 680px);
+  margin: 34px auto 0;
+}
+
+.client-logo-card {
+  display: grid;
+  place-items: center;
+  min-height: 54px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.client-logo-card img {
+  max-width: calc(100% * var(--logo-scale, 1));
+  max-height: calc(42px * var(--logo-scale, 1));
+  object-fit: contain;
+}
+
+.client-logo-card figcaption {
+  display: none;
+}
+
 .accent-band {
   display: grid;
   gap: 10px;
@@ -1295,6 +1443,30 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .client-logo-item,
+  .clients-logo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-logo-item {
+    grid-template-areas:
+      "order"
+      "thumb"
+      "name"
+      "size"
+      "source"
+      "file"
+      "remove";
+  }
+
+  .client-logo-file {
+    grid-column: auto;
+  }
+
+  .client-logo-thumb {
+    width: 100%;
+  }
+
   .client-approval {
     grid-template-columns: 1fr;
   }
@@ -1324,8 +1496,7 @@ select:focus {
   }
 
   .app-topbar,
-  .editor-panel,
-  .app-dialog {
+  .editor-panel {
     display: none;
   }
 

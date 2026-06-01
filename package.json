@@ -1,23 +1,10 @@
 {
-  "name": "price-quote-generator",
+  "name": "improve-it-quote-generator",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "lucide-react": "^0.284.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "signature_pad": "^5.1.3"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.0.3",
-    "vite": "^4.4.5"
+    "pdf": "node scripts/render-pdf.mjs data/example-elhar.json output/example-elhar.pdf",
+    "serve": "node scripts/serve.mjs"
   }
 }

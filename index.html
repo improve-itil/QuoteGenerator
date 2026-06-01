@@ -4,8 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>מחולל הצעות מחיר | Improve-IT</title>
-    <link rel="icon" href="assets/brand/improve-it-logo.png" />
-    <link rel="stylesheet" href="styles.css?v=20260525-pdf-toc-links" />
+    <link rel="stylesheet" href="styles.css?v=20260601-logo-editor-layout" />
   </head>
   <body>
     <div class="app-shell">
@@ -68,6 +67,10 @@
             <p>פרטי יועץ המכירות שיופיעו בחתימת ההצעה.</p>
           </div>
           <div class="salesperson-settings-fields">
+            <label class="wide">
+              בחירת יועץ
+              <select id="salespersonSelect"></select>
+            </label>
             <label>
               שם
               <input id="salespersonName" type="text" />
@@ -76,6 +79,8 @@
               תפקיד
               <input id="salespersonTitle" type="text" />
             </label>
+            <button type="button" class="compact" id="addSalespersonSettings">יועץ חדש</button>
+            <button type="button" class="compact danger" id="deleteSalespersonSettings">מחיקה</button>
             <button type="button" class="compact" id="resetSalespersonSettings">איפוס</button>
           </div>
         </article>
@@ -282,6 +287,13 @@
                   </div>
                 </div>
                 <textarea id="sectionEditorText" rows="8"></textarea>
+                <div class="client-logos-editor" id="clientLogosEditor" hidden>
+                  <div class="section-heading-row">
+                    <h3>לוגואים בסעיף</h3>
+                    <button type="button" class="compact" id="addClientLogo">הוספת לוגו</button>
+                  </div>
+                  <div id="clientLogosList" class="client-logos-list"></div>
+                </div>
               </div>
             </section>
 
@@ -336,6 +348,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config/supabase-config.js"></script>
-    <script src="src/app.js?v=20260525-pdf-get-url" defer></script>
+    <script src="src/app.js?v=20260601-salespeople-list-db" defer></script>
   </body>
 </html>

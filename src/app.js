@@ -3,11 +3,18 @@
   const SIGNED_ARCHIVE_KEY = "improve-it-signed-quotes";
   const TEMPLATE_SETTINGS_KEY = "improve-it-template-settings";
   const SALESPERSON_SETTINGS_KEY = "improve-it-salesperson-settings";
+  const CLIENT_LOGO_SETTINGS_KEY = "improve-it-client-logo-settings";
   const PDF_RENDER_URL = "http://localhost:4173/api/render-pdf";
   const LOCAL_SIGNED_ARCHIVE_URL = "http://localhost:4173/api/signed-archive";
   const DEFAULT_SALESPERSON_SETTINGS = {
-    name: "איש קשר לדוגמה",
-    title: "תפקיד לדוגמה, Improve-IT",
+    selectedId: "default",
+    advisors: [
+      {
+        id: "default",
+        name: "איש קשר לדוגמה",
+        title: "תפקיד לדוגמה, Improve-IT",
+      },
+    ],
   };
   const LMS_SINGLE_COURSE_TIERS = [
     { maxUsers: 60, price: 2940 },
@@ -131,6 +138,35 @@
     cancellationText:
       "על תכולה אשר תבוטל לפני תחילת העבודה הרשמית ייגבו 30% מסך המחיר המוזמן, למעט אם הועברו חומרים כלשהם למזמין; במקרה כזה תשולם העלות המלאה.\nתכולת עבודה אשר נכנסה לעבודה תשולם בהתאם לאבן הדרך הבאה בתוספת 20% מסך שארית ההזמנה.\nלא יתקיימו החזרים מאבני דרך ששולמו.\nכלל תכולות העבודה משפיעות האחת על השנייה; ביטול של תכולות עלול לגרור שינוי במחירים ליחידה של שאר התכולות המוזמנות, בכפוף להצעה זו ולשיקול דעתה הבלעדי של Improve-IT.",
   };
+  const LEGACY_CLIENT_LOGOS_SRC = "assets/brand/client-logos.png";
+  const DEFAULT_CLIENT_LOGOS = [
+    { name: "מאוחדת", src: "assets/brand/client-logos/meuhedet.png" },
+    { name: "כללית", src: "assets/brand/client-logos/clalit.png" },
+    { name: "משרד הבריאות", src: "assets/brand/client-logos/ministry-health.png" },
+    { name: "משרד הפנים", src: "assets/brand/client-logos/ministry-interior.png" },
+    { name: "משטרת ישראל", src: "assets/brand/client-logos/israel-police.png" },
+    { name: "ניצני הקריה", src: "assets/brand/client-logos/nitzanei-hakirya.png" },
+    { name: "כבאות והצלה לישראל", src: "assets/brand/client-logos/fire-rescue.png" },
+    { name: 'המרכז הרפואי תל-אביב ע"ש סוראסקי', src: "assets/brand/client-logos/sourasky-medical-center.png" },
+    { name: "ICL", src: "assets/brand/client-logos/icl.png" },
+    { name: "תנובה", src: "assets/brand/client-logos/tnuva.png" },
+    { name: "סופר-פארם", src: "assets/brand/client-logos/super-pharm.png" },
+    { name: "OPHIR Optics", src: "assets/brand/client-logos/ophir-optics.png" },
+    { name: "הפניקס", src: "assets/brand/client-logos/phoenix.png" },
+    { name: "שקל", src: "assets/brand/client-logos/shekel-group.png" },
+    { name: "שלמה ביטוח", src: "assets/brand/client-logos/shlomo-insurance.png" },
+    { name: "אל על", src: "assets/brand/client-logos/elal.png" },
+    { name: "אבן קיסר", src: "assets/brand/client-logos/caesarstone.png" },
+    { name: "איתוראן", src: "assets/brand/client-logos/ituran.png" },
+    { name: "IKEA", src: "assets/brand/client-logos/ikea.png" },
+    { name: "דואר ישראל", src: "assets/brand/client-logos/israel-post.png" },
+    { name: "טבע", src: "assets/brand/client-logos/teva.png" },
+    { name: "amdocs", src: "assets/brand/client-logos/amdocs.png" },
+    { name: "הראל", src: "assets/brand/client-logos/harel.png" },
+    { name: "בנק הפועלים", src: "assets/brand/client-logos/bank-hapoalim.png" },
+    { name: "דיסקונט", src: "assets/brand/client-logos/discount.png?v=20260601-crop" },
+    { name: "קבוצת בזן", src: "assets/brand/client-logos/bazan.png?v=20260601-crop", size: 135 },
+  ];
   const EDITABLE_SECTIONS = {
     profile: { title: "פרופיל חברה", field: "companyProfileText" },
     clients: { title: "לקוחות", field: "clientsText" },
@@ -145,27 +181,28 @@
   const sampleQuote = {
     templateId: DEFAULT_TEMPLATE_ID,
     quoteNumber: "VER1",
-    quoteDate: "2024-07-08",
+    quoteDate: "",
     validDays: 30,
     clientCompany: "ארגון לדוגמה",
     contactName: "איש קשר לדוגמה",
     contactTitle: "תפקיד לדוגמה",
     subject: "הצעת מחיר עבור שימוש במערכת LMS ובלומדות מדף עבור ארגון לדוגמה",
-    signatoryName: DEFAULT_SALESPERSON_SETTINGS.name,
-    signatoryTitle: DEFAULT_SALESPERSON_SETTINGS.title,
+    signatoryName: DEFAULT_SALESPERSON_SETTINGS.advisors[0].name,
+    signatoryTitle: DEFAULT_SALESPERSON_SETTINGS.advisors[0].title,
     clientSignerName: "",
     clientSignerTitle: "",
     clientSignerCompany: "",
     clientSignatureDate: "",
     clientSignatureData: "",
+    clientLogos: DEFAULT_CLIENT_LOGOS.map((logo) => ({ ...logo })),
     pricingItemsEdited: false,
     users: 100,
-    courseCount: 3,
+    courseCount: 4,
     courseNames: [],
     pricingPlanLabel: "השכרה - מסלול שנתי",
     pricingIntroText: "",
     additionalUserPrice: 60,
-    showTotals: true,
+    showTotals: false,
     mergeCourseNotes: false,
     includeLms: true,
     bilingualCourse: false,
@@ -182,7 +219,7 @@
     discountPercent: 5,
     discountDisplayMode: "percent",
     discountTitle: "הנחות",
-    discountValidUntil: "2024-07-25",
+    discountValidUntil: "2024-07-31",
     backgroundText:
       "ארגון לדוגמה בוחן בימים אלה את האפשרות לשילוב של לומדות מדף עבור עובדי הארגון, כולל שימוש במערכת LMS.",
     solutionText:
@@ -201,6 +238,8 @@
 
   let quote = normalizeQuote(sampleQuote);
   let salespersonSettings = normalizeSalespersonSettings();
+  let clientLogoSettings = DEFAULT_CLIENT_LOGOS.map((logo) => ({ ...logo }));
+  let clientLogoSaveTimer = null;
   const isClientMode = getHashParam("mode") === "client";
 
   const form = document.getElementById("quoteForm");
@@ -213,12 +252,16 @@
   const signedArchivePanel = document.getElementById("signedArchivePanel");
   const signedArchiveList = document.getElementById("signedArchiveList");
   const settingsPanel = document.getElementById("settingsPanel");
+  const salespersonSelectField = document.getElementById("salespersonSelect");
   const salespersonNameField = document.getElementById("salespersonName");
   const salespersonTitleField = document.getElementById("salespersonTitle");
   const templateSettingsList = document.getElementById("templateSettingsList");
   const sectionEditor = document.getElementById("sectionEditor");
   const sectionEditorTitle = document.getElementById("sectionEditorTitle");
   const sectionEditorText = document.getElementById("sectionEditorText");
+  const clientLogosEditor = document.getElementById("clientLogosEditor");
+  const clientLogosList = document.getElementById("clientLogosList");
+  const addClientLogoButton = document.getElementById("addClientLogo");
   const closeSectionEditorButton = document.getElementById("closeSectionEditor");
   const resetSectionTextButton = document.getElementById("resetSectionText");
   const appDialog = document.getElementById("appDialog");
@@ -239,10 +282,12 @@
   async function init() {
     setupSupabase();
     applyTemplateSettings(await readTemplateSettings());
-    salespersonSettings = readSalespersonSettings();
+    clientLogoSettings = await readClientLogoSettings();
+    salespersonSettings = await readSalespersonSettings();
     quote = normalizeQuote(await readInitialQuote());
     if (!isClientMode) {
       applySalespersonSettingsToQuote();
+      applyClientLogoSettingsToQuote();
     }
     document.body.classList.toggle("client-mode", isClientMode);
     populateTemplateOptions();
@@ -263,6 +308,10 @@
     sectionEditorText.addEventListener("input", handleSectionEditorInput);
     closeSectionEditorButton.addEventListener("click", closeSectionEditor);
     resetSectionTextButton.addEventListener("click", resetActiveSectionText);
+    addClientLogoButton.addEventListener("click", addClientLogo);
+    clientLogosList.addEventListener("input", handleClientLogoInput);
+    clientLogosList.addEventListener("change", handleClientLogoInput);
+    clientLogosList.addEventListener("click", handleClientLogoClick);
     document.querySelectorAll("[data-section-edit]").forEach((button) => {
       button.addEventListener("click", () => openSectionEditor(button.dataset.sectionEdit));
     });
@@ -283,6 +332,7 @@
     document.getElementById("resetSample").addEventListener("click", () => {
       quote = normalizeQuote(sampleQuote);
       applySalespersonSettingsToQuote();
+      applyClientLogoSettingsToQuote();
       storageRemove(STORAGE_KEY);
       populateForm();
       renderCourseNameInputs();
@@ -307,8 +357,11 @@
       settingsPanel.hidden = true;
     });
     document.getElementById("resetTemplateSettings").addEventListener("click", resetTemplateSettings);
+    salespersonSelectField.addEventListener("change", handleSalespersonSelectionChange);
     salespersonNameField.addEventListener("input", handleSalespersonSettingsInput);
     salespersonTitleField.addEventListener("input", handleSalespersonSettingsInput);
+    document.getElementById("addSalespersonSettings").addEventListener("click", addSalespersonSettings);
+    document.getElementById("deleteSalespersonSettings").addEventListener("click", deleteSalespersonSettings);
     document.getElementById("resetSalespersonSettings").addEventListener("click", resetSalespersonSettings);
     document.getElementById("addTemplateSettings").addEventListener("click", addTemplateSettings);
     templateSettingsList.addEventListener("input", handleTemplateSettingsInput);
@@ -366,6 +419,7 @@
     const hasManualPricingItems = Boolean(raw?.pricingItemsEdited && Array.isArray(raw?.pricingItems));
     const merged = { ...sampleQuote, ...(raw || {}) };
     merged.templateId = TEMPLATE_DEFINITIONS[merged.templateId] ? merged.templateId : getFallbackTemplateId();
+    merged.quoteDate = parseIsoDate(merged.quoteDate) ? merged.quoteDate : todayIsoDate();
     merged.validDays = numberOr(merged.validDays, sampleQuote.validDays);
     merged.users = numberOr(merged.users, sampleQuote.users);
     merged.courseCount = Math.max(0, Math.round(numberOr(merged.courseCount, 0)));
@@ -374,6 +428,7 @@
     merged.discountDisplayMode = ["percent", "amount"].includes(merged.discountDisplayMode)
       ? merged.discountDisplayMode
       : sampleQuote.discountDisplayMode;
+    merged.discountValidUntil = monthEndIsoDate(merged.quoteDate);
     merged.pricingPlanLabel = merged.pricingPlanLabel || sampleQuote.pricingPlanLabel;
     merged.pricingIntroText = merged.pricingIntroText || "";
     merged.pricingOptionLabels = {
@@ -394,6 +449,7 @@
     merged.clientSignerCompany = merged.clientSignerCompany || "";
     merged.clientSignatureDate = merged.clientSignatureDate || "";
     merged.clientSignatureData = sanitizeSignatureData(merged.clientSignatureData);
+    merged.clientLogos = normalizeClientLogos(merged.clientLogos);
     merged.courseNames = Array.isArray(merged.courseNames)
       ? merged.courseNames.map((name) => String(name || "").trim())
       : String(merged.courseNames || "")
@@ -495,13 +551,58 @@
 
   function normalizeSalespersonSettings(raw = {}) {
     raw = raw || {};
+    const rawAdvisors = Array.isArray(raw.advisors)
+      ? raw.advisors
+      : raw.name || raw.title
+        ? [raw]
+        : DEFAULT_SALESPERSON_SETTINGS.advisors;
+    const advisors = rawAdvisors.map(normalizeSalespersonAdvisor).filter((advisor) => advisor.name);
+    if (!advisors.length) {
+      advisors.push(...DEFAULT_SALESPERSON_SETTINGS.advisors.map(normalizeSalespersonAdvisor));
+    }
+    const selectedId = advisors.some((advisor) => advisor.id === raw.selectedId) ? raw.selectedId : advisors[0].id;
+    return { selectedId, advisors };
+  }
+
+  function normalizeSalespersonAdvisor(raw = {}) {
+    const fallback = DEFAULT_SALESPERSON_SETTINGS.advisors[0];
+    const name = String(raw.name || fallback.name).trim();
     return {
-      name: String(raw.name || DEFAULT_SALESPERSON_SETTINGS.name).trim() || DEFAULT_SALESPERSON_SETTINGS.name,
-      title: String(raw.title || DEFAULT_SALESPERSON_SETTINGS.title).trim() || DEFAULT_SALESPERSON_SETTINGS.title,
+      id: String(raw.id || createId("salesperson")).trim(),
+      name,
+      title: String(raw.title || fallback.title).trim(),
     };
   }
 
-  function readSalespersonSettings() {
+  function selectedSalespersonAdvisor(settings = salespersonSettings) {
+    const source = settings?.advisors ? settings : normalizeSalespersonSettings(settings);
+    return source.advisors.find((advisor) => advisor.id === source.selectedId) || source.advisors[0];
+  }
+
+  async function readSalespersonSettings() {
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from("salesperson_settings")
+          .select("settings")
+          .eq("id", "default")
+          .maybeSingle();
+        if (error) throw error;
+        if (data?.settings) {
+          const settings = normalizeSalespersonSettings(data.settings);
+          storageSet(SALESPERSON_SETTINGS_KEY, JSON.stringify(settings));
+          return settings;
+        }
+
+        const defaultSettings = normalizeSalespersonSettings();
+        await saveSalespersonSettingsToSupabase(defaultSettings);
+        storageSet(SALESPERSON_SETTINGS_KEY, JSON.stringify(defaultSettings));
+        return defaultSettings;
+      } catch (error) {
+        console.warn("Could not load salesperson settings from Supabase", error);
+      }
+    }
+
     try {
       const stored = storageGet(SALESPERSON_SETTINGS_KEY);
       return normalizeSalespersonSettings(stored ? JSON.parse(stored) : null);
@@ -512,25 +613,78 @@
   }
 
   function saveSalespersonSettings() {
+    salespersonSettings = normalizeSalespersonSettings(salespersonSettings);
     storageSet(SALESPERSON_SETTINGS_KEY, JSON.stringify(salespersonSettings));
+    saveSalespersonSettingsToSupabase(salespersonSettings);
   }
 
   function populateSalespersonSettingsForm() {
-    salespersonNameField.value = salespersonSettings.name;
-    salespersonTitleField.value = salespersonSettings.title;
+    const selectedAdvisor = selectedSalespersonAdvisor();
+    salespersonSelectField.innerHTML = salespersonSettings.advisors
+      .map((advisor) => `<option value="${escapeAttr(advisor.id)}">${escapeHtml(advisor.name)}</option>`)
+      .join("");
+    salespersonSelectField.value = salespersonSettings.selectedId;
+    salespersonNameField.value = selectedAdvisor.name;
+    salespersonTitleField.value = selectedAdvisor.title;
   }
 
   function applySalespersonSettingsToQuote() {
-    quote.signatoryName = salespersonSettings.name;
-    quote.signatoryTitle = salespersonSettings.title;
+    const selectedAdvisor = selectedSalespersonAdvisor();
+    quote.signatoryName = selectedAdvisor.name;
+    quote.signatoryTitle = selectedAdvisor.title;
+  }
+
+  function handleSalespersonSelectionChange() {
+    salespersonSettings.selectedId = salespersonSelectField.value;
+    saveSalespersonSettings();
+    populateSalespersonSettingsForm();
+    applySalespersonSettingsToQuote();
+    populateForm();
+    renderPreview();
   }
 
   function handleSalespersonSettingsInput() {
-    salespersonSettings = normalizeSalespersonSettings({
-      name: salespersonNameField.value,
-      title: salespersonTitleField.value,
-    });
+    const selectedAdvisor = selectedSalespersonAdvisor();
+    selectedAdvisor.name = salespersonNameField.value.trim() || DEFAULT_SALESPERSON_SETTINGS.advisors[0].name;
+    selectedAdvisor.title = salespersonTitleField.value.trim() || DEFAULT_SALESPERSON_SETTINGS.advisors[0].title;
     saveSalespersonSettings();
+    applySalespersonSettingsToQuote();
+    populateSalespersonSettingsForm();
+    populateForm();
+    renderPreview();
+  }
+
+  function addSalespersonSettings() {
+    const advisor = {
+      id: createId("salesperson"),
+      name: "יועץ מכירות חדש",
+      title: "תפקיד, Improve-IT",
+    };
+    salespersonSettings.advisors.push(advisor);
+    salespersonSettings.selectedId = advisor.id;
+    saveSalespersonSettings();
+    populateSalespersonSettingsForm();
+    applySalespersonSettingsToQuote();
+    populateForm();
+    renderPreview();
+    salespersonNameField.focus();
+    salespersonNameField.select();
+  }
+
+  async function deleteSalespersonSettings() {
+    if (salespersonSettings.advisors.length <= 1) {
+      await showAppAlert("לא ניתן למחוק", "חייב להישאר לפחות יועץ מכירות אחד.");
+      return;
+    }
+
+    const selectedAdvisor = selectedSalespersonAdvisor();
+    const confirmed = await showAppConfirm("מחיקת יועץ מכירות", `למחוק את "${selectedAdvisor.name}" מהרשימה?`, "מחיקה");
+    if (!confirmed) return;
+
+    salespersonSettings.advisors = salespersonSettings.advisors.filter((advisor) => advisor.id !== selectedAdvisor.id);
+    salespersonSettings.selectedId = salespersonSettings.advisors[0].id;
+    saveSalespersonSettings();
+    populateSalespersonSettingsForm();
     applySalespersonSettingsToQuote();
     populateForm();
     renderPreview();
@@ -538,7 +692,7 @@
 
   function resetSalespersonSettings() {
     salespersonSettings = normalizeSalespersonSettings();
-    storageRemove(SALESPERSON_SETTINGS_KEY);
+    saveSalespersonSettings();
     populateSalespersonSettingsForm();
     applySalespersonSettingsToQuote();
     populateForm();
@@ -814,11 +968,17 @@
       quote[field.name] = field.value;
     }
 
+    if (field.name === "quoteDate") {
+      quote.discountValidUntil = monthEndIsoDate(quote.quoteDate);
+      if (form.elements.discountValidUntil) {
+        form.elements.discountValidUntil.value = quote.discountValidUntil;
+      }
+    }
+
     if (field.name === "signatoryName" || field.name === "signatoryTitle") {
-      salespersonSettings = normalizeSalespersonSettings({
-        name: quote.signatoryName,
-        title: quote.signatoryTitle,
-      });
+      const selectedAdvisor = selectedSalespersonAdvisor();
+      selectedAdvisor.name = quote.signatoryName;
+      selectedAdvisor.title = quote.signatoryTitle;
       saveSalespersonSettings();
       populateSalespersonSettingsForm();
     }
@@ -874,12 +1034,15 @@
     activeSectionEditorKey = sectionKey;
     sectionEditorTitle.textContent = `עריכת סעיף: ${config.title}`;
     sectionEditorText.value = getSectionEditorValue(config);
+    clientLogosEditor.hidden = sectionKey !== "clients";
+    if (sectionKey === "clients") renderClientLogosEditor();
     sectionEditor.hidden = false;
     sectionEditorText.focus();
   }
 
   function closeSectionEditor() {
     sectionEditor.hidden = true;
+    clientLogosEditor.hidden = true;
     activeSectionEditorKey = "";
   }
 
@@ -931,6 +1094,211 @@
       const field = form.elements[fieldName];
       if (field) field.value = quote[fieldName] || "";
     });
+  }
+
+  function normalizeClientLogos(logos) {
+    const source = Array.isArray(logos) ? logos : DEFAULT_CLIENT_LOGOS;
+    const normalized = source
+      .map((logo) => ({
+        name: String(logo?.name || "").trim(),
+        src: versionClientLogoSrc(sanitizeClientLogoSrc(logo?.src)),
+        size: clampClientLogoSize(logo?.size ?? defaultClientLogoSize(logo)),
+      }))
+      .filter((logo) => logo.src);
+
+    if (normalized.length === 1 && normalized[0].src === LEGACY_CLIENT_LOGOS_SRC) {
+      return DEFAULT_CLIENT_LOGOS.map((logo) => ({ ...logo }));
+    }
+
+    return normalized;
+  }
+
+  function sanitizeClientLogoSrc(value) {
+    const src = String(value || "").trim();
+    if (!src) return "";
+    if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,[a-z0-9+/=]+$/i.test(src)) return src;
+    if (/^(https?:\/\/|assets\/|\.\/|\/)/i.test(src)) return src;
+    return "";
+  }
+
+  function versionClientLogoSrc(src) {
+    const cleanSrc = String(src || "").replace(/\?.*$/, "");
+    if (cleanSrc === "assets/brand/client-logos/discount.png" || cleanSrc === "assets/brand/client-logos/bazan.png") {
+      return `${cleanSrc}?v=20260601-crop`;
+    }
+    return src;
+  }
+
+  function clampClientLogoSize(value) {
+    return Math.min(180, Math.max(60, Math.round(numberOr(value, 100))));
+  }
+
+  function defaultClientLogoSize(logo) {
+    const src = String(logo?.src || "").replace(/\?.*$/, "");
+    if (src.endsWith("/bazan.png") || String(logo?.name || "").includes("בזן")) return 135;
+    return 100;
+  }
+
+  function renderClientLogosEditor() {
+    clientLogosList.innerHTML = quote.clientLogos.length
+      ? quote.clientLogos.map(renderClientLogoEditorRow).join("")
+      : `<p class="empty-note">לא הוגדרו לוגואים.</p>`;
+  }
+
+  function renderClientLogoEditorRow(logo, index) {
+    return `
+      <div class="client-logo-item" data-client-logo-index="${index}">
+        <div class="client-logo-order" aria-label="שינוי סדר">
+          <button type="button" title="העבר למעלה" aria-label="העבר את ${escapeAttr(logo.name || "הלוגו")} למעלה" data-move-client-logo="-1" ${index === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" title="העבר למטה" aria-label="העבר את ${escapeAttr(logo.name || "הלוגו")} למטה" data-move-client-logo="1" ${index === quote.clientLogos.length - 1 ? "disabled" : ""}>↓</button>
+        </div>
+        <div class="client-logo-thumb">
+          ${logo.src ? `<img src="${escapeAttr(logo.src)}" alt="${escapeAttr(logo.name || "לוגו לקוח")}" />` : ""}
+        </div>
+        <label class="client-logo-name">
+          שם לתיאור
+          <input data-client-logo-field="name" type="text" value="${escapeAttr(logo.name)}" />
+        </label>
+        <label class="client-logo-source">
+          מקור תמונה
+          <input data-client-logo-field="src" type="url" value="${escapeAttr(logo.src)}" />
+        </label>
+        <label class="client-logo-size">
+          גודל %
+          <input data-client-logo-field="size" type="number" min="60" max="180" step="5" value="${escapeAttr(logo.size)}" />
+        </label>
+        <label class="client-logo-file">
+          העלאת קובץ
+          <input data-client-logo-upload type="file" accept="image/*" />
+        </label>
+        <button type="button" class="danger client-logo-remove" data-remove-client-logo="${index}">מחיקה</button>
+      </div>
+    `;
+  }
+
+  function addClientLogo() {
+    quote.clientLogos.push({ name: "לקוח חדש", src: "" });
+    queueClientLogoSettingsSave();
+    renderClientLogosEditor();
+    renderPreview();
+  }
+
+  async function handleClientLogoInput(event) {
+    const row = event.target.closest("[data-client-logo-index]");
+    if (!row) return;
+
+    const index = Number(row.dataset.clientLogoIndex);
+    const logo = quote.clientLogos[index];
+    if (!logo) return;
+
+    if (event.target.dataset.clientLogoField) {
+      const field = event.target.dataset.clientLogoField;
+      if (field === "src") {
+        logo.src = sanitizeClientLogoSrc(event.target.value);
+      } else if (field === "size") {
+        logo.size = clampClientLogoSize(event.target.value);
+      } else {
+        logo[field] = event.target.value;
+      }
+      queueClientLogoSettingsSave();
+      renderPreview();
+      return;
+    }
+
+    if (event.target.dataset.clientLogoUpload !== undefined && event.target.files?.[0]) {
+      logo.src = await readImageFileAsDataUrl(event.target.files[0]);
+      if (!logo.name.trim()) logo.name = event.target.files[0].name.replace(/\.[^.]+$/, "");
+      saveClientLogoSettings();
+      renderClientLogosEditor();
+      renderPreview();
+    }
+  }
+
+  function handleClientLogoClick(event) {
+    const moveButton = event.target.closest("[data-move-client-logo]");
+    if (moveButton) {
+      moveClientLogo(moveButton.closest("[data-client-logo-index]"), Number(moveButton.dataset.moveClientLogo));
+      return;
+    }
+
+    const removeButton = event.target.closest("[data-remove-client-logo]");
+    if (!removeButton) return;
+
+    quote.clientLogos.splice(Number(removeButton.dataset.removeClientLogo), 1);
+    saveClientLogoSettings();
+    renderClientLogosEditor();
+    renderPreview();
+  }
+
+  function moveClientLogo(row, direction) {
+    const fromIndex = Number(row?.dataset.clientLogoIndex);
+    const toIndex = fromIndex + direction;
+    if (!Number.isInteger(fromIndex) || toIndex < 0 || toIndex >= quote.clientLogos.length) return;
+
+    const [logo] = quote.clientLogos.splice(fromIndex, 1);
+    quote.clientLogos.splice(toIndex, 0, logo);
+    saveClientLogoSettings();
+    renderClientLogosEditor();
+    renderPreview();
+  }
+
+  function readImageFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function readClientLogoSettings() {
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from("client_logo_settings")
+          .select("logos")
+          .eq("id", "default")
+          .maybeSingle();
+        if (error) throw error;
+        if (Array.isArray(data?.logos)) {
+          const logos = normalizeClientLogos(data.logos);
+          storageSet(CLIENT_LOGO_SETTINGS_KEY, JSON.stringify(logos));
+          return logos;
+        }
+        const defaultLogos = normalizeClientLogos(DEFAULT_CLIENT_LOGOS);
+        await saveClientLogoSettingsToSupabase(defaultLogos);
+        storageSet(CLIENT_LOGO_SETTINGS_KEY, JSON.stringify(defaultLogos));
+        return defaultLogos;
+      } catch (error) {
+        console.warn("Could not load client logos from Supabase", error);
+      }
+    }
+
+    try {
+      const stored = storageGet(CLIENT_LOGO_SETTINGS_KEY);
+      if (stored) return normalizeClientLogos(JSON.parse(stored));
+    } catch (error) {
+      console.warn("Could not parse client logo settings", error);
+    }
+
+    return normalizeClientLogos(DEFAULT_CLIENT_LOGOS);
+  }
+
+  function applyClientLogoSettingsToQuote() {
+    quote.clientLogos = normalizeClientLogos(clientLogoSettings);
+  }
+
+  function saveClientLogoSettings() {
+    clientLogoSettings = normalizeClientLogos(quote.clientLogos);
+    storageSet(CLIENT_LOGO_SETTINGS_KEY, JSON.stringify(clientLogoSettings));
+    saveClientLogoSettingsToSupabase(clientLogoSettings);
+  }
+
+  function queueClientLogoSettingsSave() {
+    if (isClientMode) return;
+
+    window.clearTimeout(clientLogoSaveTimer);
+    clientLogoSaveTimer = window.setTimeout(saveClientLogoSettings, 350);
   }
 
   function applyTemplateDefaults() {
@@ -1074,10 +1442,6 @@
     window.print();
   }
 
-  function downloadSignedQuote() {
-    openPrintDialog();
-  }
-
   async function showPrintPdfChoice() {
     const choice = await showAppDialog({
       title: "הדפסה / PDF",
@@ -1183,8 +1547,6 @@
   }
 
   async function sendSignedQuote() {
-    const sendButton = document.getElementById("sendSignedQuote");
-
     if (!quote.clientSignerName.trim()) {
       await showAppAlert("חסרים פרטי חתימה", "יש למלא שם חותם לפני שליחת ההצעה החתומה.");
       return;
@@ -1201,26 +1563,18 @@
       if (dateField) dateField.value = quote.clientSignatureDate;
     }
 
-    sendButton.disabled = true;
-    sendButton.textContent = "שומר חתימה...";
-
-    try {
-      const archive = readSignedArchive();
-      const signedRecord = {
-        id: `${quote.quoteNumber || "quote"}-${Date.now()}`,
-        signedAt: new Date().toISOString(),
-        quote: normalizeQuote(quote),
-      };
-      archive.unshift(signedRecord);
-      storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
-      await saveSignedQuoteToSupabase(signedRecord);
-      await saveSignedQuoteToLocalServer(signedRecord);
-      renderPreview();
-      await showSignedQuoteSentDialog();
-    } finally {
-      sendButton.disabled = false;
-      sendButton.textContent = "מאשר/ת את ההצעה ושולח/ת חתימה";
-    }
+    const archive = readSignedArchive();
+    const signedRecord = {
+      id: `${quote.quoteNumber || "quote"}-${Date.now()}`,
+      signedAt: new Date().toISOString(),
+      quote: normalizeQuote(quote),
+    };
+    archive.unshift(signedRecord);
+    storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
+    await saveSignedQuoteToSupabase(signedRecord);
+    await saveSignedQuoteToLocalServer(signedRecord);
+    renderPreview();
+    await showAppAlert("ההצעה נשמרה", "ההצעה החתומה נשמרה במאגר ההצעות החתומות.");
   }
 
   async function showSignedArchive() {
@@ -1324,22 +1678,6 @@
     return showAppDialog({ title, message, confirmText, showCancel: true });
   }
 
-  function showSignedQuoteSentDialog() {
-    return showAppDialog({
-      title: "ההצעה החתומה נשלחה",
-      message: "ניתן לסגור את החלון.",
-      confirmText: "אישור",
-      showCancel: false,
-      extraActions: [
-        {
-          text: "הורדת ההצעה החתומה",
-          className: "compact",
-          onClick: downloadSignedQuote,
-        },
-      ],
-    });
-  }
-
   function showAppDialog({
     title,
     message,
@@ -1348,33 +1686,18 @@
     cancelText = "ביטול",
     confirmResult = true,
     cancelResult = false,
-    extraActions = [],
   }) {
     appDialogTitle.textContent = title;
     appDialogMessage.innerHTML = `<p>${escapeHtml(message)}</p>`;
     appDialogConfirm.textContent = confirmText;
     appDialogCancel.textContent = cancelText;
     appDialogCancel.hidden = !showCancel;
-    appDialog.querySelectorAll("[data-extra-dialog-action]").forEach((button) => button.remove());
-    const extraActionButtons = extraActions.map((action) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = action.className || "compact";
-      button.textContent = action.text;
-      button.dataset.extraDialogAction = "true";
-      appDialogConfirm.before(button);
-      return { button, action };
-    });
     appDialog.hidden = false;
     appDialogConfirm.focus();
 
     return new Promise((resolve) => {
       const close = (result) => {
         appDialog.hidden = true;
-        extraActionButtons.forEach(({ button, action }) => {
-          button.removeEventListener("click", action.onClick);
-          button.remove();
-        });
         appDialogConfirm.removeEventListener("click", onConfirm);
         appDialogCancel.removeEventListener("click", onCancel);
         appDialog.removeEventListener("click", onBackdrop);
@@ -1390,9 +1713,6 @@
         if (event.key === "Escape") close(null);
       };
 
-      extraActionButtons.forEach(({ button, action }) => {
-        button.addEventListener("click", action.onClick);
-      });
       appDialogConfirm.addEventListener("click", onConfirm);
       appDialogCancel.addEventListener("click", onCancel);
       appDialog.addEventListener("click", onBackdrop);
@@ -1456,8 +1776,6 @@
   }
 
   async function syncSignedArchiveFromLocalServer() {
-    if (!shouldUseLocalSignedArchive()) return;
-
     try {
       const response = await fetch(LOCAL_SIGNED_ARCHIVE_URL);
       if (!response.ok) throw new Error(`Local signed archive failed: ${response.status}`);
@@ -1484,8 +1802,6 @@
   }
 
   async function saveSignedQuoteToLocalServer(record) {
-    if (!shouldUseLocalSignedArchive()) return;
-
     try {
       const response = await fetch(LOCAL_SIGNED_ARCHIVE_URL, {
         method: "POST",
@@ -1511,7 +1827,6 @@
 
   async function deleteSignedQuoteFromLocalServer(id) {
     if (!id) return;
-    if (!shouldUseLocalSignedArchive()) return;
 
     try {
       const response = await fetch(`${LOCAL_SIGNED_ARCHIVE_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -1536,6 +1851,36 @@
     }
   }
 
+  async function saveSalespersonSettingsToSupabase(settings) {
+    if (!supabaseClient) return;
+
+    try {
+      const { error } = await supabaseClient.from("salesperson_settings").upsert({
+        id: "default",
+        settings: normalizeSalespersonSettings(settings),
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.warn("Could not save salesperson settings to Supabase", error);
+    }
+  }
+
+  async function saveClientLogoSettingsToSupabase(logos) {
+    if (!supabaseClient) return;
+
+    try {
+      const { error } = await supabaseClient.from("client_logo_settings").upsert({
+        id: "default",
+        logos: normalizeClientLogos(logos),
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.warn("Could not save client logos to Supabase", error);
+    }
+  }
+
   async function resetTemplateSettingsInSupabase() {
     if (!supabaseClient) return;
 
@@ -1545,10 +1890,6 @@
     } catch (error) {
       console.warn("Could not reset template settings in Supabase", error);
     }
-  }
-
-  function shouldUseLocalSignedArchive() {
-    return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname) && window.location.port === "4173";
   }
 
   function storageGet(key) {
@@ -1746,10 +2087,27 @@
   }
 
   function renderClientsPage(q) {
+    const logos = normalizeClientLogos(q.clientLogos);
+    const logosMarkup =
+      logos.length === 1 && logos[0].src === LEGACY_CLIENT_LOGOS_SRC
+        ? `<img class="clients-image" src="${escapeAttr(logos[0].src)}" alt="${escapeAttr(logos[0].name || "לקוחות Improve-IT")}" />`
+        : `<div class="clients-logo-grid">
+            ${logos
+              .map(
+                (logo) => `
+                  <figure class="client-logo-card" style="--logo-scale: ${escapeAttr(logo.size / 100)}">
+                    <img src="${escapeAttr(logo.src)}" alt="${escapeAttr(logo.name || "לוגו לקוח")}" />
+                    ${logo.name ? `<figcaption>${escapeHtml(logo.name)}</figcaption>` : ""}
+                  </figure>
+                `
+              )
+              .join("")}
+          </div>`;
+
     return page(`
       <section class="content-section">
         <h1 class="page-title">${sectionTitleLink("clients", q.clientsText || "מבין לקוחותינו")}</h1>
-        <img class="clients-image" src="assets/brand/client-logos.png" alt="לקוחות Improve-IT" />
+        ${logosMarkup}
       </section>
     `);
   }
@@ -2028,8 +2386,9 @@
   }
 
   function buildServiceDescription(q) {
-    const pieces = ["שימוש בלומדות מדף"];
-    if (q.includeLms) pieces.push(`כולל ${pricingOptionLabel(q, "includeLms", "מערכת LMS")}`);
+    const pieces = q.includeLms
+      ? [`שימוש ב${pricingOptionLabel(q, "includeLms", "מערכת LMS בענן")},`, "כולל לומדות מדף"]
+      : ["שימוש בלומדות מדף"];
     if (q.includeTranslation) pieces.push(`ו${pricingOptionLabel(q, "includeTranslation", "תרגום")}`);
     return pieces.join(" ");
   }
@@ -2411,6 +2770,28 @@
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+  }
+
+  function createId(prefix) {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function monthEndIsoDate(value) {
+    const date = parseIsoDate(value) || parseIsoDate(todayIsoDate());
+    return new Date(Date.UTC(date.year, date.month, 0)).toISOString().slice(0, 10);
+  }
+
+  function parseIsoDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+    return { year, month, day };
   }
 
   function escapeHtml(value) {
