@@ -160,7 +160,7 @@
     clientSignatureData: "",
     pricingItemsEdited: false,
     users: 100,
-    courseCount: 4,
+    courseCount: 3,
     courseNames: [],
     pricingPlanLabel: "השכרה - מסלול שנתי",
     pricingIntroText: "",
