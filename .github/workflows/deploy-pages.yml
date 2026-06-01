@@ -34,6 +34,24 @@ jobs:
           cp src/app.js dist/src/
           cp -R assets config dist/
 
+      - name: Inject Supabase config
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+          const config = {
+            url: process.env.SUPABASE_URL || "",
+            anonKey: process.env.SUPABASE_ANON_KEY || "",
+          };
+          fs.mkdirSync("dist/config", { recursive: true });
+          fs.writeFileSync(
+            "dist/config/supabase-config.js",
+            `window.IMPROVE_IT_SUPABASE = ${JSON.stringify(config, null, 2)};\n`
+          );
+          EOF
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

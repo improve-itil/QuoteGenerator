@@ -1,20 +1,74 @@
 # מחולל הצעות מחיר - Improve-IT
 
-כלי מתקדם להפקת הצעות מחיר מקצועיות ואחידות.
+כלי להפקת הצעות מחיר ממותגות, יצירת קישור חתימה ללקוח ושמירת הצעות חתומות.
 
-## תכונות עיקריות
-- **עריכה בזמן אמת**: צפייה מקדימה בהצעה תוך כדי הקלדה.
-- **ניהול רכיבים קבועים**: ניתן להגדיר רכיבי שירות קבועים ומחירים בהגדרות המחולל (נשמר בדפדפן).
-- **ייצוא ל-PDF**: הפקת קובץ PDF איכותי ישירות מהדפדפן.
-- **עיצוב פרימיום**: מותאם למותג Improve-IT עם תמיכה מלאה בעברית.
+## הרצה מקומית
 
-## הוראות הפעלה
-1. הריצו `npm install` (בפעם הראשונה).
-2. הריצו `npm run dev`.
-3. פתחו את הכתובת המוצגת (בדרך כלל http://localhost:5173).
+```bash
+python3 -m http.server 4180
+```
 
-## שימוש
-- **פרטי לקוח**: מלאו את שם החברה, הכתובת ואיש הקשר.
-- **הוספת רכיבים**: לחצו על "הוסף מרשימה" ובחרו רכיב מהרשימה שהגדרתם מראש, או ערכו ידנית.
-- **הגדרות**: לחצו על האייקון של גלגל השיניים כדי לערוך את פרטי השולח (Improve-IT) ואת רשימת הרכיבים הקבועים.
-- **הדפסה**: לחצו על "ייצוא ל-PDF" כדי לשמור את ההצעה.
+פתחו:
+
+```text
+http://localhost:4180/
+```
+
+## חיבור Supabase
+
+המחולל משתמש ב-Supabase לשני דברים:
+
+- `signed_quotes` - מאגר הצעות חתומות.
+- `template_settings` - שמירת הגדרות פורמטים.
+
+### 1. יצירת הטבלאות
+
+ב-Supabase פתחו:
+
+`SQL Editor` -> `New query`
+
+והריצו את הקובץ:
+
+```text
+supabase/schema.sql
+```
+
+### 2. חיבור מקומי
+
+העתיקו את קובץ הדוגמה:
+
+```bash
+cp config/supabase-config.example.js config/supabase-config.js
+```
+
+עדכנו בו את:
+
+```js
+url: "https://your-project-ref.supabase.co",
+anonKey: "your-public-anon-key",
+```
+
+### 3. חיבור GitHub Pages
+
+בריפו ב-GitHub פתחו:
+
+`Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
+
+והוסיפו:
+
+```text
+SUPABASE_URL
+SUPABASE_ANON_KEY
+```
+
+אחרי שמירת הסודות, הריצו מחדש את ה-workflow:
+
+`Actions` -> `Deploy GitHub Pages` -> `Run workflow`
+
+בפריסה, ה-workflow יוצר אוטומטית את:
+
+```text
+dist/config/supabase-config.js
+```
+
+עם הערכים מתוך GitHub Secrets.
