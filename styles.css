@@ -1324,7 +1324,8 @@ select:focus {
   }
 
   .app-topbar,
-  .editor-panel {
+  .editor-panel,
+  .app-dialog {
     display: none;
   }
 

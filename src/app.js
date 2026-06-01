@@ -1074,6 +1074,10 @@
     window.print();
   }
 
+  function downloadSignedQuote() {
+    openPrintDialog();
+  }
+
   async function showPrintPdfChoice() {
     const choice = await showAppDialog({
       title: "הדפסה / PDF",
@@ -1212,7 +1216,7 @@
       await saveSignedQuoteToSupabase(signedRecord);
       await saveSignedQuoteToLocalServer(signedRecord);
       renderPreview();
-      await showAppAlert("ההצעה החתומה נשלחה", "ניתן לסגור את החלון.");
+      await showSignedQuoteSentDialog();
     } finally {
       sendButton.disabled = false;
       sendButton.textContent = "מאשר/ת את ההצעה ושולח/ת חתימה";
@@ -1320,6 +1324,22 @@
     return showAppDialog({ title, message, confirmText, showCancel: true });
   }
 
+  function showSignedQuoteSentDialog() {
+    return showAppDialog({
+      title: "ההצעה החתומה נשלחה",
+      message: "ניתן לסגור את החלון.",
+      confirmText: "אישור",
+      showCancel: false,
+      extraActions: [
+        {
+          text: "הורדת ההצעה החתומה",
+          className: "compact",
+          onClick: downloadSignedQuote,
+        },
+      ],
+    });
+  }
+
   function showAppDialog({
     title,
     message,
@@ -1328,18 +1348,33 @@
     cancelText = "ביטול",
     confirmResult = true,
     cancelResult = false,
+    extraActions = [],
   }) {
     appDialogTitle.textContent = title;
     appDialogMessage.innerHTML = `<p>${escapeHtml(message)}</p>`;
     appDialogConfirm.textContent = confirmText;
     appDialogCancel.textContent = cancelText;
     appDialogCancel.hidden = !showCancel;
+    appDialog.querySelectorAll("[data-extra-dialog-action]").forEach((button) => button.remove());
+    const extraActionButtons = extraActions.map((action) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = action.className || "compact";
+      button.textContent = action.text;
+      button.dataset.extraDialogAction = "true";
+      appDialogConfirm.before(button);
+      return { button, action };
+    });
     appDialog.hidden = false;
     appDialogConfirm.focus();
 
     return new Promise((resolve) => {
       const close = (result) => {
         appDialog.hidden = true;
+        extraActionButtons.forEach(({ button, action }) => {
+          button.removeEventListener("click", action.onClick);
+          button.remove();
+        });
         appDialogConfirm.removeEventListener("click", onConfirm);
         appDialogCancel.removeEventListener("click", onCancel);
         appDialog.removeEventListener("click", onBackdrop);
@@ -1355,6 +1390,9 @@
         if (event.key === "Escape") close(null);
       };
 
+      extraActionButtons.forEach(({ button, action }) => {
+        button.addEventListener("click", action.onClick);
+      });
       appDialogConfirm.addEventListener("click", onConfirm);
       appDialogCancel.addEventListener("click", onCancel);
       appDialog.addEventListener("click", onBackdrop);
