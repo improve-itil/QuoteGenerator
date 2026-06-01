@@ -1179,6 +1179,8 @@
   }
 
   async function sendSignedQuote() {
+    const sendButton = document.getElementById("sendSignedQuote");
+
     if (!quote.clientSignerName.trim()) {
       await showAppAlert("חסרים פרטי חתימה", "יש למלא שם חותם לפני שליחת ההצעה החתומה.");
       return;
@@ -1195,18 +1197,26 @@
       if (dateField) dateField.value = quote.clientSignatureDate;
     }
 
-    const archive = readSignedArchive();
-    const signedRecord = {
-      id: `${quote.quoteNumber || "quote"}-${Date.now()}`,
-      signedAt: new Date().toISOString(),
-      quote: normalizeQuote(quote),
-    };
-    archive.unshift(signedRecord);
-    storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
-    await saveSignedQuoteToSupabase(signedRecord);
-    await saveSignedQuoteToLocalServer(signedRecord);
-    renderPreview();
-    await showAppAlert("ההצעה נשמרה", "ההצעה החתומה נשמרה במאגר ההצעות החתומות.");
+    sendButton.disabled = true;
+    sendButton.textContent = "שומר חתימה...";
+
+    try {
+      const archive = readSignedArchive();
+      const signedRecord = {
+        id: `${quote.quoteNumber || "quote"}-${Date.now()}`,
+        signedAt: new Date().toISOString(),
+        quote: normalizeQuote(quote),
+      };
+      archive.unshift(signedRecord);
+      storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
+      await saveSignedQuoteToSupabase(signedRecord);
+      await saveSignedQuoteToLocalServer(signedRecord);
+      renderPreview();
+      await showAppAlert("ההצעה נשמרה", "ההצעה החתומה נשמרה במאגר ההצעות החתומות.");
+    } finally {
+      sendButton.disabled = false;
+      sendButton.textContent = "מאשר/ת את ההצעה ושולח/ת חתימה";
+    }
   }
 
   async function showSignedArchive() {
@@ -1408,6 +1418,8 @@
   }
 
   async function syncSignedArchiveFromLocalServer() {
+    if (!shouldUseLocalSignedArchive()) return;
+
     try {
       const response = await fetch(LOCAL_SIGNED_ARCHIVE_URL);
       if (!response.ok) throw new Error(`Local signed archive failed: ${response.status}`);
@@ -1434,6 +1446,8 @@
   }
 
   async function saveSignedQuoteToLocalServer(record) {
+    if (!shouldUseLocalSignedArchive()) return;
+
     try {
       const response = await fetch(LOCAL_SIGNED_ARCHIVE_URL, {
         method: "POST",
@@ -1459,6 +1473,7 @@
 
   async function deleteSignedQuoteFromLocalServer(id) {
     if (!id) return;
+    if (!shouldUseLocalSignedArchive()) return;
 
     try {
       const response = await fetch(`${LOCAL_SIGNED_ARCHIVE_URL}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
@@ -1492,6 +1507,10 @@
     } catch (error) {
       console.warn("Could not reset template settings in Supabase", error);
     }
+  }
+
+  function shouldUseLocalSignedArchive() {
+    return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname) && window.location.port === "4173";
   }
 
   function storageGet(key) {
