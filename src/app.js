@@ -244,6 +244,7 @@
   let clientLogoSettings = DEFAULT_CLIENT_LOGOS.map((logo) => ({ ...logo }));
   let clientLogoSaveTimer = null;
   const isClientMode = getHashParam("mode") === "client";
+  let lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
 
   const form = document.getElementById("quoteForm");
   const preview = document.getElementById("proposalPreview");
@@ -290,6 +291,7 @@
     clientLogoSettings = await readClientLogoSettings();
     salespersonSettings = await readSalespersonSettings();
     quote = normalizeQuote(await readInitialQuote());
+    lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
     if (!isClientMode) {
       applySalespersonSettingsToQuote();
       applyClientLogoSettingsToQuote();
@@ -337,6 +339,7 @@
 
     document.getElementById("resetSample").addEventListener("click", () => {
       quote = normalizeQuote(sampleQuote);
+      lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
       applySalespersonSettingsToQuote();
       applyClientLogoSettingsToQuote();
       storageRemove(STORAGE_KEY);
@@ -982,6 +985,38 @@
     if (!field.name || field.closest(".custom-item") || field.dataset.pricingOptionLabel) return;
     const previousCompany = quote.clientCompany;
     const previousSubject = quote.subject;
+
+    if (field.name === "clientCompany") {
+      const newCompany = field.value || "";
+      const replacementTarget = lastCompanyTextValue || "ארגון לדוגמה";
+      const replacementValue = newCompany || "ארגון לדוגמה";
+
+      if (replacementTarget !== replacementValue) {
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escapeRegExp(replacementTarget), "g");
+
+        quote.subject = (quote.subject || "").replace(regex, replacementValue);
+        quote.backgroundText = (quote.backgroundText || "").replace(regex, replacementValue);
+        quote.solutionText = (quote.solutionText || "").replace(regex, replacementValue);
+
+        const subjectField = form.elements.subject;
+        const backgroundField = form.elements.backgroundText;
+        const solutionField = form.elements.solutionText;
+
+        if (subjectField) subjectField.value = quote.subject;
+        if (backgroundField) backgroundField.value = quote.backgroundText;
+        if (solutionField) solutionField.value = quote.solutionText;
+
+        if (sectionEditor && !sectionEditor.hidden && activeSectionEditorKey) {
+          const activeConfig = EDITABLE_SECTIONS[activeSectionEditorKey];
+          if (activeConfig && (activeConfig.field === "backgroundText" || activeConfig.field === "solutionText")) {
+            sectionEditorText.value = getSectionEditorValue(activeConfig);
+          }
+        }
+
+        lastCompanyTextValue = replacementValue;
+      }
+    }
     const shouldRefreshPricingItems = [
       "users",
       "courseCount",
