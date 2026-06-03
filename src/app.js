@@ -1943,6 +1943,11 @@
       .replace(/<figcaption\b/g, '<div')
       .replace(/<\/figcaption>/g, '</div>');
 
+    // Strip decorative local images with relative paths to prevent ZIP corruption in html-docx-js and broken links in Word
+    content = content.replace(/<img\b[^>]*src="assets\/[^"]*"[^>]*>/gi, "");
+    content = content.replace(/<div\b[^>]*class="clients-logo-grid"[\s\S]*?<\/div>/gi, "");
+
+
     const htmlString = `
       <!DOCTYPE html>
       <html lang="he" dir="rtl">
