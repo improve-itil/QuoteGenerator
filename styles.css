@@ -401,11 +401,53 @@ body.auth-required .app-shell {
   text-align: right;
 }
 
+.template-section-row-container {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-section-row-container .template-section-row {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .template-section-row {
   padding: 7px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #ffffff;
+}
+
+.template-section-text-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.template-section-text-field span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.template-section-text-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  resize: vertical;
+  background: #f9fbfb;
 }
 
 .template-section-row .template-section-title {

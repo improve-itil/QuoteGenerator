@@ -586,8 +586,12 @@
         merged.pricingOptionLabels[key] = defaultValue;
       }
     });
+    const template = TEMPLATE_DEFINITIONS[merged.templateId] || TEMPLATE_DEFINITIONS[getFallbackTemplateId()];
+    const templateDefaults = template?.defaults || {};
+
     Object.entries(DEFAULT_SECTION_TEXTS).forEach(([key, defaultValue]) => {
-      merged[key] = typeof merged[key] === "string" ? merged[key] : defaultValue;
+      const fallbackValue = typeof templateDefaults[key] === "string" ? templateDefaults[key] : defaultValue;
+      merged[key] = typeof merged[key] === "string" ? merged[key] : fallbackValue;
     });
     merged.lmsServiceTitle = typeof merged.lmsServiceTitle === "string" ? merged.lmsServiceTitle : "שירות LMS";
     merged.lmsSectionLocation = ["samePage", "newPageAfter", "newPageBefore"].includes(merged.lmsSectionLocation)
@@ -963,20 +967,43 @@
                 const definition = sectionDefinitions.find(([definitionFlag]) => definitionFlag === flag);
                 const isShownByDefault = Boolean(template.defaults?.[flag]);
                 const isShownInToc = Boolean(isShownByDefault && definition);
+
+                const config = EDITABLE_SECTIONS[key];
+                const textFieldsHtml = config
+                  ? [
+                      [config.field, config.title],
+                      config.extraField ? [config.extraField, "שירות LMS"] : null
+                    ]
+                      .filter(Boolean)
+                      .map(([field, label]) => {
+                        const defaultText = template.defaults?.[field] ?? DEFAULT_SECTION_TEXTS[field] ?? "";
+                        return `
+                          <label class="template-section-text-field" style="grid-column: 1 / -1; margin-top: 6px;">
+                            <span>טקסט ברירת מחדל (${escapeHtml(label)})</span>
+                            <textarea data-template-default-text="${field}" rows="3">${escapeHtml(defaultText)}</textarea>
+                          </label>
+                        `;
+                      })
+                      .join("")
+                  : "";
+
                 return `
-                  <div class="template-section-row">
-                    <label>
-                      <span class="template-section-title">${escapeHtml(defaultTitle)}</span>
-                      <input data-template-section-title="${flag}" type="text" value="${escapeAttr(definition?.[2] || defaultTitle)}" />
-                    </label>
-                    <label class="template-section-check">
-                      <input data-template-default-flag="${flag}" type="checkbox" ${isShownByDefault ? "checked" : ""} />
-                      <span>מסמך</span>
-                    </label>
-                    <label class="template-section-check">
-                      <input data-template-toc-flag="${flag}" type="checkbox" ${isShownInToc ? "checked" : ""} ${isShownByDefault ? "" : "disabled"} />
-                      <span>תוכן</span>
-                    </label>
+                  <div class="template-section-row-container">
+                    <div class="template-section-row">
+                      <label>
+                        <span class="template-section-title">${escapeHtml(defaultTitle)}</span>
+                        <input data-template-section-title="${flag}" type="text" value="${escapeAttr(definition?.[2] || defaultTitle)}" />
+                      </label>
+                      <label class="template-section-check">
+                        <input data-template-default-flag="${flag}" type="checkbox" ${isShownByDefault ? "checked" : ""} />
+                        <span>מסמך</span>
+                      </label>
+                      <label class="template-section-check">
+                        <input data-template-toc-flag="${flag}" type="checkbox" ${isShownInToc ? "checked" : ""} ${isShownByDefault ? "" : "disabled"} />
+                        <span>תוכן</span>
+                      </label>
+                    </div>
+                    ${textFieldsHtml}
                   </div>
                 `;
               }).join("")}
@@ -1457,10 +1484,13 @@
   }
 
   function defaultSectionEditorValue(config) {
-    const value = DEFAULT_SECTION_TEXTS[config.field] || "";
+    const template = getTemplate(quote);
+    const defaults = template.defaults || {};
+    const value = typeof defaults[config.field] === "string" ? defaults[config.field] : (DEFAULT_SECTION_TEXTS[config.field] || "");
     if (!config.extraField) return value;
     const lmsTitle = quote.lmsServiceTitle || "שירות LMS";
-    return `${value}\n\n--- ${lmsTitle} ---\n${DEFAULT_SECTION_TEXTS[config.extraField] || ""}`;
+    const extraValue = typeof defaults[config.extraField] === "string" ? defaults[config.extraField] : (DEFAULT_SECTION_TEXTS[config.extraField] || "");
+    return `${value}\n\n--- ${lmsTitle} ---\n${extraValue}`;
   }
 
   function populateSectionFormFields(config) {
