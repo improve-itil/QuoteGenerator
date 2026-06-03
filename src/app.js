@@ -3267,7 +3267,7 @@
       ? `
         <section class="content-section">
           <h1 class="page-title">${sectionTitleLink("terms", termsTitle)}</h1>
-          <p><strong>תנאי תשלום לשירות לומדה בענן:</strong> שוטף + 30.</p>
+          <p><strong>תנאי תשלום ${q.includeLms ? "לשירות לומדה בענן" : "לרכישת לומדה"}:</strong> שוטף + 30.</p>
           ${q.includeLms ? "<p>מסלול שנתי: תשלום מראש לשנה עם העברת הזמנת עבודה.</p>" : ""}
           <p>הצעת המחיר תהיה בתוקף למשך ${escapeHtml(q.validDays)} ימים מהוצאתה.</p>
           <ol class="terms-list">
