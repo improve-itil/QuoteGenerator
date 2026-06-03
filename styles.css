@@ -1119,7 +1119,9 @@ select:focus {
 
 .date-line {
   width: 36%;
-  text-align: right;
+  text-align: left;
+  margin-right: auto;
+  margin-left: 0;
 }
 
 .recipient {
