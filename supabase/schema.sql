@@ -72,6 +72,12 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "shared quotes can be deleted from the app" on public.shared_quotes;
+create policy "shared quotes can be deleted from the app"
+on public.shared_quotes for delete
+to anon
+using (true);
+
 drop policy if exists "template settings are publicly readable" on public.template_settings;
 create policy "template settings are publicly readable"
 on public.template_settings for select
