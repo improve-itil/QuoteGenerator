@@ -493,7 +493,6 @@
       });
       document.getElementById("sendSignedQuote").addEventListener("click", sendSignedQuote);
       document.getElementById("printQuote").addEventListener("click", showPrintPdfChoice);
-      document.getElementById("downloadDocx").addEventListener("click", downloadQuoteAsDocx);
       clearSignatureButton.addEventListener("click", clearSignature);
 
       if (getHashParam("pdf") === "1" && !isClientMode) {
@@ -1922,201 +1921,6 @@
     }
   }
 
-  async function downloadQuoteAsDocx() {
-    const q = normalizeQuote(quote, { syncDefaultTexts: false });
-    
-    // Replace modern HTML5 tags with generic DIV elements for MS Word parser compatibility
-    let content = renderQuote(q);
-    content = content
-      .replace(/<article\b/g, '<div')
-      .replace(/<\/article>/g, '</div>')
-      .replace(/<section\b/g, '<div')
-      .replace(/<\/section>/g, '</div>')
-      .replace(/<main\b/g, '<div')
-      .replace(/<\/main>/g, '</div>')
-      .replace(/<header\b/g, '<div')
-      .replace(/<\/header>/g, '</div>')
-      .replace(/<footer\b/g, '<div')
-      .replace(/<\/footer>/g, '</div>')
-      .replace(/<figure\b/g, '<div')
-      .replace(/<\/figure>/g, '</div>')
-      .replace(/<figcaption\b/g, '<div')
-      .replace(/<\/figcaption>/g, '</div>');
-
-    // Strip decorative local images with relative paths to prevent ZIP corruption in html-docx-js and broken links in Word
-    content = content.replace(/<img\b[^>]*src="assets\/[^"]*"[^>]*>/gi, "");
-    content = content.replace(/<div\b[^>]*class="clients-logo-grid"[\s\S]*?<\/div>/gi, "");
-
-
-    const htmlString = `
-      <!DOCTYPE html>
-      <html lang="he" dir="rtl">
-      <head>
-        <meta charset="utf-8">
-        <title>${escapeHtml(q.clientCompany || "הצעת מחיר")}</title>
-        <style>
-          body {
-            font-family: 'Arial', sans-serif;
-            direction: rtl;
-            text-align: right;
-            color: #073a3a;
-            font-size: 11pt;
-            line-height: 1.5;
-          }
-          .quote-page {
-            page-break-after: always;
-          }
-          h1, .page-title {
-            color: #0072ce;
-            font-size: 16pt;
-            text-decoration: underline;
-            margin-top: 18pt;
-            margin-bottom: 12pt;
-            text-align: right;
-          }
-          h2 {
-            color: #0072ce;
-            font-size: 14pt;
-            text-decoration: underline;
-            margin-top: 14pt;
-            margin-bottom: 8pt;
-            text-align: right;
-          }
-          p {
-            margin-bottom: 8pt;
-            text-align: right;
-          }
-          ul, ol {
-            margin-bottom: 10pt;
-            padding-right: 18pt;
-          }
-          li {
-            margin-bottom: 4pt;
-            text-align: right;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12pt 0;
-            direction: rtl;
-          }
-          th, td {
-            border: 1px solid #1b1b1b;
-            padding: 6pt 8pt;
-            text-align: right;
-            vertical-align: top;
-          }
-          th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-          }
-          .total-table {
-            width: 50%;
-            margin-right: auto;
-            margin-left: 0;
-          }
-          .total-table td {
-            border-bottom: 1px solid #178fb0;
-            border-top: 0;
-            border-left: 0;
-            border-right: 0;
-          }
-          .total-table tr:last-child td {
-            border-top: 2px solid #86c64d;
-            font-weight: bold;
-            font-size: 13pt;
-          }
-          .cover-page {
-            text-align: center;
-          }
-          .cover-title {
-            font-size: 22pt;
-            font-weight: bold;
-            margin-top: 40pt;
-            margin-bottom: 20pt;
-          }
-          .date-line {
-            text-align: left;
-            margin-bottom: 30pt;
-          }
-          .recipient {
-            margin-top: 40pt;
-            margin-bottom: 30pt;
-          }
-          .subject {
-            font-size: 14pt;
-            font-weight: bold;
-            text-align: center;
-            text-decoration: underline;
-            margin: 24pt 0;
-          }
-          .signature-block {
-            margin-top: 60pt;
-          }
-          .quote-header, .quote-footer {
-            display: none;
-          }
-          .clients-logo-grid {
-            display: table;
-            width: 100%;
-            margin-top: 20px;
-          }
-          .client-logo-card {
-            display: inline-block;
-            margin: 10px;
-            vertical-align: middle;
-          }
-          .client-logo-card img {
-            max-height: 50px;
-            width: auto;
-          }
-        </style>
-      </head>
-      <body>
-        ${content}
-      </body>
-      </html>
-    `;
-
-    try {
-      if (typeof htmlDocx === "undefined") {
-        throw new Error("htmlDocx library is not loaded");
-      }
-      
-      const converted = htmlDocx.asBlob(htmlString);
-      const filename = `${(q.clientCompany || "הצעת מחיר").trim().replace(/\s+/g, "_")}_${q.quoteNumber || ""}.docx`;
-      
-      if (navigator.msSaveOrOpenBlob) {
-        navigator.msSaveOrOpenBlob(converted, filename);
-      } else {
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(converted);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-      }
-    } catch (e) {
-      console.warn("Could not generate docx using htmlDocx, falling back to html doc export", e);
-      const blob = new Blob(['\ufeff' + htmlString], {
-        type: 'application/msword;charset=utf-8'
-      });
-      const filename = `${(q.clientCompany || "הצעת מחיר").trim().replace(/\s+/g, "_")}_${q.quoteNumber || ""}.doc`;
-      
-      if (navigator.msSaveOrOpenBlob) {
-        navigator.msSaveOrOpenBlob(blob, filename);
-      } else {
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-      }
-    }
-  }
 
   async function buildClientLink() {
     const payload = buildShareQuotePayload();
@@ -2927,7 +2731,7 @@
     }
     const currentViewerId = getOrCreateViewerId();
     if (event.viewerId && event.viewerId === currentViewerId) {
-      parts.push("המחשב הנוכחי");
+      parts.push("המכשיר הנוכחי");
     }
     if (!parts.length) return "";
     return ` <span class="quote-tracking-meta-tag">(${parts.join(", ")})</span>`;
