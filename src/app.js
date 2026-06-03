@@ -994,7 +994,7 @@
                     ]
                       .filter(Boolean)
                       .map(([field, label]) => {
-                        const defaultText = template.defaults?.[field] ?? DEFAULT_SECTION_TEXTS[field] ?? "";
+                        const defaultText = template.defaults?.[field] ?? DEFAULT_SECTION_TEXTS[field] ?? sampleQuote[field] ?? "";
                         return `
                           <label class="template-section-text-field" style="grid-column: 1 / -1; margin-top: 6px;">
                             <span>טקסט ברירת מחדל (${escapeHtml(label)})</span>
@@ -1530,10 +1530,10 @@
   function defaultSectionEditorValue(config) {
     const template = getTemplate(quote);
     const defaults = template.defaults || {};
-    const value = typeof defaults[config.field] === "string" ? defaults[config.field] : (DEFAULT_SECTION_TEXTS[config.field] || "");
+    const value = typeof defaults[config.field] === "string" ? defaults[config.field] : (DEFAULT_SECTION_TEXTS[config.field] || sampleQuote[config.field] || "");
     if (!config.extraField) return value;
     const lmsTitle = quote.lmsServiceTitle || "שירות LMS";
-    const extraValue = typeof defaults[config.extraField] === "string" ? defaults[config.extraField] : (DEFAULT_SECTION_TEXTS[config.extraField] || "");
+    const extraValue = typeof defaults[config.extraField] === "string" ? defaults[config.extraField] : (DEFAULT_SECTION_TEXTS[config.extraField] || sampleQuote[config.extraField] || "");
     return `${value}\n\n--- ${lmsTitle} ---\n${extraValue}`;
   }
 
