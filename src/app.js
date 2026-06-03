@@ -589,9 +589,27 @@
     const template = TEMPLATE_DEFINITIONS[merged.templateId] || TEMPLATE_DEFINITIONS[getFallbackTemplateId()];
     const templateDefaults = template?.defaults || {};
 
-    Object.entries(DEFAULT_SECTION_TEXTS).forEach(([key, defaultValue]) => {
+    const editableFields = [
+      "companyProfileText",
+      "clientsText",
+      "backgroundText",
+      "solutionText",
+      "workProcessText",
+      "lmsServiceText",
+      "pricingFinePrintText",
+      "termsText",
+      "cancellationText",
+    ];
+
+    editableFields.forEach((key) => {
+      const defaultValue = DEFAULT_SECTION_TEXTS[key] || sampleQuote[key] || "";
       const fallbackValue = typeof templateDefaults[key] === "string" ? templateDefaults[key] : defaultValue;
-      merged[key] = typeof merged[key] === "string" ? merged[key] : fallbackValue;
+      const rawValue = raw?.[key];
+      if (raw === sampleQuote || typeof rawValue !== "string") {
+        merged[key] = fallbackValue;
+      } else {
+        merged[key] = rawValue;
+      }
     });
     merged.lmsServiceTitle = typeof merged.lmsServiceTitle === "string" ? merged.lmsServiceTitle : "שירות LMS";
     merged.lmsSectionLocation = ["samePage", "newPageAfter", "newPageBefore"].includes(merged.lmsSectionLocation)
@@ -1093,12 +1111,38 @@
     const template = TEMPLATE_DEFINITIONS[id];
     if (!template) return;
 
+    const oldDefaults = { ...(template.defaults || {}) };
+
     template.label = card.querySelector('[data-template-field="label"]').value.trim() || DEFAULT_TEMPLATE_SETTINGS[id]?.label || "פורמט";
     template.description = card.querySelector('[data-template-field="description"]').value.trim();
     template.defaults = { ...(template.defaults || {}) };
 
     card.querySelectorAll("[data-template-default-text]").forEach((field) => {
-      template.defaults[field.dataset.templateDefaultText] = field.value;
+      const key = field.dataset.templateDefaultText;
+      const newValue = field.value;
+      const oldValue = oldDefaults[key];
+
+      if (quote.templateId === id) {
+        const globalDefault = DEFAULT_SECTION_TEXTS[key] || sampleQuote[key] || "";
+        const quoteValue = quote[key];
+
+        if (
+          !quoteValue ||
+          quoteValue === globalDefault ||
+          (typeof oldValue === "string" && quoteValue === oldValue)
+        ) {
+          quote[key] = newValue;
+
+          if (activeSectionEditorKey) {
+            const activeConfig = EDITABLE_SECTIONS[activeSectionEditorKey];
+            if (activeConfig && (activeConfig.field === key || activeConfig.extraField === key)) {
+              sectionEditorText.value = getSectionEditorValue(activeConfig);
+            }
+          }
+        }
+      }
+
+      template.defaults[key] = newValue;
     });
     card.querySelectorAll("[data-template-default-flag]").forEach((field) => {
       template.defaults[field.dataset.templateDefaultFlag] = field.checked;
@@ -1735,8 +1779,31 @@
   function applyTemplateDefaults() {
     const template = getTemplate(quote);
     const defaults = template.defaults || {};
+
+    const editableFields = [
+      "companyProfileText",
+      "clientsText",
+      "backgroundText",
+      "solutionText",
+      "workProcessText",
+      "lmsServiceText",
+      "pricingFinePrintText",
+      "termsText",
+      "cancellationText",
+    ];
+
     Object.entries(defaults).forEach(([key, value]) => {
-      quote[key] = value;
+      if (!editableFields.includes(key)) {
+        quote[key] = value;
+      }
+    });
+
+    editableFields.forEach((key) => {
+      if (typeof defaults[key] === "string") {
+        quote[key] = defaults[key];
+      } else {
+        quote[key] = DEFAULT_SECTION_TEXTS[key] || sampleQuote[key] || "";
+      }
     });
   }
 
