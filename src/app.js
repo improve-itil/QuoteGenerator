@@ -697,6 +697,11 @@
     if (additionalUserPriceField) {
       additionalUserPriceField.hidden = !isLmsRentalTemplate(quote.templateId);
     }
+
+    const usersFieldLabel = document.getElementById("usersFieldLabel");
+    if (usersFieldLabel) {
+      usersFieldLabel.hidden = !isLmsRentalTemplate(quote.templateId);
+    }
   }
 
   function renderCourseNameInputs() {
