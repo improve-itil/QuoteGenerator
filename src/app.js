@@ -1142,7 +1142,7 @@
     const previousCompany = quote.clientCompany;
     const previousSubject = quote.subject;
 
-    if (field.name === "clientCompany") {
+    if (field.name === "clientCompany" && event.type === "change") {
       const newCompany = field.value || "";
       const replacementTarget = lastCompanyTextValue || "ארגון לדוגמה";
       const replacementValue = newCompany || "ארגון לדוגמה";
@@ -1298,6 +1298,8 @@
     const text = String(value || "");
     const replacement = normalizeSubjectCompany(company);
     if (!text || replacement === DEFAULT_CLIENT_COMPANY) return false;
+
+    if (text.includes(replacement + "נה")) return true;
 
     const actualCount = countOccurrences(text, replacement);
     const expectedCount = countOccurrences(sampleQuote[field], DEFAULT_CLIENT_COMPANY);
