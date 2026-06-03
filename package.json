@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "pdf": "node scripts/render-pdf.mjs data/example-elhar.json output/example-elhar.pdf",
     "serve": "node scripts/serve.mjs"
   }
