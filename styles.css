@@ -249,6 +249,25 @@ body.auth-required .app-shell {
   display: none;
 }
 
+.share-links-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.share-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(300px, 1.2fr) 140px;
+  gap: 14px;
+  align-items: center;
+}
+
+.share-close-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .share-panel p {
   margin: 2px 0 0;
   color: var(--muted);
@@ -1552,6 +1571,11 @@ select:focus {
 
   .share-panel {
     grid-template-columns: 1fr;
+  }
+
+  .share-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .salesperson-settings-card,

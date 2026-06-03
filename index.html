@@ -47,23 +47,34 @@
         <div class="topbar-actions">
           <button type="button" id="resetSample">דוגמה</button>
           <button type="button" id="saveData">שמירה</button>
-          <button type="button" id="createClientLink">קישור ללקוח</button>
+          <button type="button" id="createClientLink">קישור ללקוח / עריכה</button>
           <button type="button" id="showQuoteTracking">מעקב</button>
           <button type="button" id="showSignedArchive">מאגר חתומות</button>
           <button type="button" id="showSettings">הגדרות</button>
           <button type="button" id="logoutGenerator">התנתק</button>
+          <button type="button" id="downloadDocx">הורדה כ-Word (DOCX)</button>
           <button type="button" class="primary" id="printQuote">הדפסה / PDF</button>
         </div>
       </header>
 
-      <section class="share-panel" id="sharePanel" hidden>
-        <div>
-          <strong>קישור אישי ללקוח</strong>
-          <p>שלחו את הקישור ללקוח. הקישור כולל את נתוני ההצעה ומציג ללקוח אפשרות חתימה ושליחה.</p>
-        </div>
-        <textarea id="clientLinkOutput" rows="2" readonly></textarea>
-        <div class="section-actions">
+      <section class="share-panel share-links-panel" id="sharePanel" hidden>
+        <div class="share-row">
+          <div class="share-desc">
+            <strong>קישור לחתימת לקוח</strong>
+            <p>שלחו את הקישור ללקוח. הקישור כולל אפשרות חתימה.</p>
+          </div>
+          <textarea id="clientLinkOutput" rows="1" readonly></textarea>
           <button type="button" class="compact" id="copyClientLink">העתקת קישור</button>
+        </div>
+        <div class="share-row">
+          <div class="share-desc">
+            <strong>קישור ישיר לעריכה</strong>
+            <p>קישור שיאפשר לכם להמשיך לערוך את ההצעה הנוכחית.</p>
+          </div>
+          <textarea id="editLinkOutput" rows="1" readonly></textarea>
+          <button type="button" class="compact" id="copyEditLink">העתקת קישור</button>
+        </div>
+        <div class="share-close-wrap">
           <button type="button" class="compact" id="closeSharePanel">סגירה</button>
         </div>
       </section>
@@ -346,6 +357,24 @@
               </div>
             </section>
 
+            <section class="editor-section" id="lmsSectionSettings">
+              <h2>הגדרות שירות LMS</h2>
+              <div class="field-grid">
+                <label class="wide">
+                  כותרת סעיף LMS
+                  <input name="lmsServiceTitle" type="text" placeholder="שירות LMS" />
+                </label>
+                <label class="wide">
+                  מיקום סעיף LMS במסמך
+                  <select name="lmsSectionLocation">
+                    <option value="samePage">באותו עמוד (המשך של תהליך העבודה)</option>
+                    <option value="newPageAfter">עמוד נפרד (אחרי תהליך העבודה)</option>
+                    <option value="newPageBefore">עמוד נפרד (לפני תהליך העבודה)</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
             <section class="editor-section client-signature-section">
               <h2>חתימת לקוח</h2>
               <p class="client-sign-help">לאחר מילוי הפרטים וחתימה, יש ללחוץ על אישור ושליחת חתימה.</p>
@@ -396,8 +425,10 @@
       </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config/supabase-config.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+     <script src="config/supabase-config.js"></script>
     <script src="src/app.js?v=20260603-quote-tracking" defer></script>
   </body>
 </html>

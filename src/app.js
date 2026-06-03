@@ -215,6 +215,8 @@
     showTotals: false,
     mergeCourseNotes: false,
     includeLms: true,
+    lmsServiceTitle: "שירות LMS",
+    lmsSectionLocation: "samePage",
     bilingualCourse: false,
     includeHebrewVoiceover: true,
     includeEnglishVoiceover: false,
@@ -268,6 +270,8 @@
   const sharePanel = document.getElementById("sharePanel");
   const clientLinkOutput = document.getElementById("clientLinkOutput");
   const copyClientLinkButton = document.getElementById("copyClientLink");
+  const editLinkOutput = document.getElementById("editLinkOutput");
+  const copyEditLinkButton = document.getElementById("copyEditLink");
   const signedArchivePanel = document.getElementById("signedArchivePanel");
   const signedArchiveList = document.getElementById("signedArchiveList");
   const signedArchiveSearchField = document.getElementById("signedArchiveSearch");
@@ -453,6 +457,7 @@
 
       document.getElementById("createClientLink").addEventListener("click", showClientLink);
       copyClientLinkButton.addEventListener("click", copyClientLink);
+      copyEditLinkButton.addEventListener("click", copyEditLink);
       document.getElementById("closeSharePanel").addEventListener("click", () => {
         sharePanel.hidden = true;
       });
@@ -488,6 +493,7 @@
       });
       document.getElementById("sendSignedQuote").addEventListener("click", sendSignedQuote);
       document.getElementById("printQuote").addEventListener("click", showPrintPdfChoice);
+      document.getElementById("downloadDocx").addEventListener("click", downloadQuoteAsDocx);
       clearSignatureButton.addEventListener("click", clearSignature);
 
       if (getHashParam("pdf") === "1" && !isClientMode) {
@@ -583,6 +589,10 @@
     Object.entries(DEFAULT_SECTION_TEXTS).forEach(([key, defaultValue]) => {
       merged[key] = typeof merged[key] === "string" ? merged[key] : defaultValue;
     });
+    merged.lmsServiceTitle = typeof merged.lmsServiceTitle === "string" ? merged.lmsServiceTitle : "שירות LMS";
+    merged.lmsSectionLocation = ["samePage", "newPageAfter", "newPageBefore"].includes(merged.lmsSectionLocation)
+      ? merged.lmsSectionLocation
+      : "samePage";
     merged.contactTitle = merged.contactTitle || "";
     merged.clientSignerName = merged.clientSignerName || "";
     merged.clientSignerTitle = merged.clientSignerTitle || "";
@@ -656,6 +666,11 @@
       }
     });
     populatePricingOptionLabels();
+
+    const lmsSettingsSec = document.getElementById("lmsSectionSettings");
+    if (lmsSettingsSec) {
+      lmsSettingsSec.hidden = !quote.includeLms;
+    }
   }
 
   function renderCourseNameInputs() {
@@ -1254,6 +1269,11 @@
       resetPricingItems();
     }
 
+    const lmsSettingsSec = document.getElementById("lmsSectionSettings");
+    if (lmsSettingsSec) {
+      lmsSettingsSec.hidden = !quote.includeLms;
+    }
+
     renderPricingItems();
     renderPreview();
   }
@@ -1406,7 +1426,8 @@
   function getSectionEditorValue(config) {
     const value = quote[config.field] || "";
     if (!config.extraField) return value;
-    return `${value}\n\n--- שירות LMS ---\n${quote[config.extraField] || ""}`.trim();
+    const lmsTitle = quote.lmsServiceTitle || "שירות LMS";
+    return `${value}\n\n--- ${lmsTitle} ---\n${quote[config.extraField] || ""}`.trim();
   }
 
   function setSectionEditorValue(config, value) {
@@ -1415,16 +1436,31 @@
       return;
     }
 
-    const marker = "--- שירות LMS ---";
-    const [main, extra] = value.split(marker);
-    quote[config.field] = (main || "").trim();
-    quote[config.extraField] = (extra || "").trim();
+    const lmsTitle = quote.lmsServiceTitle || "שירות LMS";
+    const match = value.match(/---\s*(.*?)\s*---/);
+    if (match) {
+      const detectedMarker = match[0];
+      const detectedTitle = match[1].trim();
+      if (detectedTitle) {
+        quote.lmsServiceTitle = detectedTitle;
+        const titleInput = form.elements.lmsServiceTitle;
+        if (titleInput) titleInput.value = detectedTitle;
+      }
+      const [main, extra] = value.split(detectedMarker);
+      quote[config.field] = (main || "").trim();
+      quote[config.extraField] = (extra || "").trim();
+    } else {
+      const [main, extra] = value.split(`--- ${lmsTitle} ---`);
+      quote[config.field] = (main || "").trim();
+      quote[config.extraField] = (extra || "").trim();
+    }
   }
 
   function defaultSectionEditorValue(config) {
     const value = DEFAULT_SECTION_TEXTS[config.field] || "";
     if (!config.extraField) return value;
-    return `${value}\n\n--- שירות LMS ---\n${DEFAULT_SECTION_TEXTS[config.extraField] || ""}`;
+    const lmsTitle = quote.lmsServiceTitle || "שירות LMS";
+    return `${value}\n\n--- ${lmsTitle} ---\n${DEFAULT_SECTION_TEXTS[config.extraField] || ""}`;
   }
 
   function populateSectionFormFields(config) {
@@ -1746,20 +1782,232 @@
   async function showClientLink() {
     const createButton = document.getElementById("createClientLink");
     createButton.disabled = true;
-    createButton.textContent = "יוצר קישור...";
+    createButton.textContent = "יוצר קישורים...";
     resetCopyFeedback();
+    resetCopyEditFeedback();
 
     try {
-      const link = await buildClientLink();
-      clientLinkOutput.value = link;
+      const payload = buildShareQuotePayload();
+      const shareId = await saveSharedQuote(payload);
+      
+      let clientLink = "";
+      let editLink = "";
+      
+      if (shareId) {
+        setActiveSharedQuoteId(shareId);
+        clientLink = `${getShareBaseUrl()}#mode=client&id=${encodeURIComponent(shareId)}`;
+        editLink = `${getShareBaseUrl()}#mode=edit&id=${encodeURIComponent(shareId)}`;
+      } else {
+        setActiveSharedQuoteId("");
+        const encoded = await compressQuotePayload(JSON.stringify(payload));
+        clientLink = `${getShareBaseUrl()}#mode=client&z=${encoded}`;
+        editLink = `${getShareBaseUrl()}#mode=edit&z=${encoded}`;
+      }
+      
+      clientLinkOutput.value = clientLink;
+      editLinkOutput.value = editLink;
+      
       sharePanel.hidden = false;
       signedArchivePanel.hidden = true;
       quoteTrackingPanel.hidden = true;
-      const copied = await copyText(link);
-      setCopyFeedback(copied ? "הקישור הועתק" : "הקישור מוכן להעתקה");
+      settingsPanel.hidden = true;
+      
+      const copied = await copyText(clientLink, clientLinkOutput);
+      setCopyFeedback(copied ? "הועתק!" : "העתקת קישור");
     } finally {
       createButton.disabled = false;
-      createButton.textContent = "קישור ללקוח";
+      createButton.textContent = "קישור ללקוח / עריכה";
+    }
+  }
+
+  async function downloadQuoteAsDocx() {
+    const q = normalizeQuote(quote, { syncDefaultTexts: false });
+    
+    // Replace modern HTML5 tags with generic DIV elements for MS Word parser compatibility
+    let content = renderQuote(q);
+    content = content
+      .replace(/<article\b/g, '<div')
+      .replace(/<\/article>/g, '</div>')
+      .replace(/<section\b/g, '<div')
+      .replace(/<\/section>/g, '</div>')
+      .replace(/<main\b/g, '<div')
+      .replace(/<\/main>/g, '</div>')
+      .replace(/<header\b/g, '<div')
+      .replace(/<\/header>/g, '</div>')
+      .replace(/<footer\b/g, '<div')
+      .replace(/<\/footer>/g, '</div>')
+      .replace(/<figure\b/g, '<div')
+      .replace(/<\/figure>/g, '</div>')
+      .replace(/<figcaption\b/g, '<div')
+      .replace(/<\/figcaption>/g, '</div>');
+
+    const htmlString = `
+      <!DOCTYPE html>
+      <html lang="he" dir="rtl">
+      <head>
+        <meta charset="utf-8">
+        <title>${escapeHtml(q.clientCompany || "הצעת מחיר")}</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            direction: rtl;
+            text-align: right;
+            color: #073a3a;
+            font-size: 11pt;
+            line-height: 1.5;
+          }
+          .quote-page {
+            page-break-after: always;
+          }
+          h1, .page-title {
+            color: #0072ce;
+            font-size: 16pt;
+            text-decoration: underline;
+            margin-top: 18pt;
+            margin-bottom: 12pt;
+            text-align: right;
+          }
+          h2 {
+            color: #0072ce;
+            font-size: 14pt;
+            text-decoration: underline;
+            margin-top: 14pt;
+            margin-bottom: 8pt;
+            text-align: right;
+          }
+          p {
+            margin-bottom: 8pt;
+            text-align: right;
+          }
+          ul, ol {
+            margin-bottom: 10pt;
+            padding-right: 18pt;
+          }
+          li {
+            margin-bottom: 4pt;
+            text-align: right;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12pt 0;
+            direction: rtl;
+          }
+          th, td {
+            border: 1px solid #1b1b1b;
+            padding: 6pt 8pt;
+            text-align: right;
+            vertical-align: top;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          .total-table {
+            width: 50%;
+            margin-right: auto;
+            margin-left: 0;
+          }
+          .total-table td {
+            border-bottom: 1px solid #178fb0;
+            border-top: 0;
+            border-left: 0;
+            border-right: 0;
+          }
+          .total-table tr:last-child td {
+            border-top: 2px solid #86c64d;
+            font-weight: bold;
+            font-size: 13pt;
+          }
+          .cover-page {
+            text-align: center;
+          }
+          .cover-title {
+            font-size: 22pt;
+            font-weight: bold;
+            margin-top: 40pt;
+            margin-bottom: 20pt;
+          }
+          .date-line {
+            text-align: left;
+            margin-bottom: 30pt;
+          }
+          .recipient {
+            margin-top: 40pt;
+            margin-bottom: 30pt;
+          }
+          .subject {
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: underline;
+            margin: 24pt 0;
+          }
+          .signature-block {
+            margin-top: 60pt;
+          }
+          .quote-header, .quote-footer {
+            display: none;
+          }
+          .clients-logo-grid {
+            display: table;
+            width: 100%;
+            margin-top: 20px;
+          }
+          .client-logo-card {
+            display: inline-block;
+            margin: 10px;
+            vertical-align: middle;
+          }
+          .client-logo-card img {
+            max-height: 50px;
+            width: auto;
+          }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+      </html>
+    `;
+
+    try {
+      if (typeof htmlDocx === "undefined") {
+        throw new Error("htmlDocx library is not loaded");
+      }
+      
+      const converted = htmlDocx.asBlob(htmlString);
+      const filename = `${(q.clientCompany || "הצעת מחיר").trim().replace(/\s+/g, "_")}_${q.quoteNumber || ""}.docx`;
+      
+      if (navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(converted, filename);
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(converted);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+    } catch (e) {
+      console.warn("Could not generate docx using htmlDocx, falling back to html doc export", e);
+      const blob = new Blob(['\ufeff' + htmlString], {
+        type: 'application/msword;charset=utf-8'
+      });
+      const filename = `${(q.clientCompany || "הצעת מחיר").trim().replace(/\s+/g, "_")}_${q.quoteNumber || ""}.doc`;
+      
+      if (navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(blob, filename);
+      } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
     }
   }
 
@@ -1892,11 +2140,16 @@
   }
 
   async function copyClientLink() {
-    const copied = await copyText(clientLinkOutput.value);
+    const copied = await copyText(clientLinkOutput.value, clientLinkOutput);
     setCopyFeedback(copied ? "הועתק!" : "לא הועתק אוטומטית");
   }
 
-  async function copyText(text) {
+  async function copyEditLink() {
+    const copied = await copyText(editLinkOutput.value, editLinkOutput);
+    setCopyEditFeedback(copied ? "הועתק!" : "לא הועתק אוטומטית");
+  }
+
+  async function copyText(text, fallbackEl) {
     if (!text) return false;
 
     if (navigator.clipboard?.writeText) {
@@ -1908,9 +2161,9 @@
       }
     }
 
-    if (clientLinkOutput) {
-      clientLinkOutput.focus();
-      clientLinkOutput.select();
+    if (fallbackEl) {
+      fallbackEl.focus();
+      fallbackEl.select();
       try {
         return document.execCommand("copy");
       } catch (error) {
@@ -1932,6 +2185,19 @@
     window.clearTimeout(copyClientLinkButton.feedbackTimer);
     copyClientLinkButton.textContent = "העתקת קישור";
     copyClientLinkButton.classList.remove("is-confirmed");
+  }
+
+  function setCopyEditFeedback(message) {
+    copyEditLinkButton.textContent = message;
+    copyEditLinkButton.classList.add("is-confirmed");
+    window.clearTimeout(copyEditLinkButton.feedbackTimer);
+    copyEditLinkButton.feedbackTimer = window.setTimeout(resetCopyEditFeedback, 1800);
+  }
+
+  function resetCopyEditFeedback() {
+    window.clearTimeout(copyEditLinkButton.feedbackTimer);
+    copyEditLinkButton.textContent = "העתקת קישור";
+    copyEditLinkButton.classList.remove("is-confirmed");
   }
 
   async function sendSignedQuote() {
@@ -3035,7 +3301,21 @@
     if (q.showCompanyProfile) pages.push(renderCompanyPage(q, sections));
     if (q.showClients) pages.push(renderClientsPage(q));
     if (q.showBackground || q.showSolution) pages.push(renderBackgroundSolutionPage(q, sections));
-    if (q.showWorkProcess) pages.push(renderWorkProcessPage(q, sections));
+
+    const showLmsAsNewPage = q.includeLms && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
+
+    if (showLmsAsNewPage && q.lmsSectionLocation === "newPageBefore") {
+      pages.push(renderLmsServicePage(q, sections));
+    }
+
+    if (q.showWorkProcess) {
+      pages.push(renderWorkProcessPage(q, sections));
+    }
+
+    if (showLmsAsNewPage && q.lmsSectionLocation !== "newPageBefore") {
+      pages.push(renderLmsServicePage(q, sections));
+    }
+
     if (q.showPricing) pages.push(renderPricingPage(q, sections));
     if (q.showTerms || q.showCancellation) pages.push(renderTermsPage(q, sections));
 
@@ -3149,10 +3429,11 @@
       processBullets.push("תיקוף התרגום: תיקוף ואישור התרגום.");
     }
 
-    const lmsBlock = q.includeLms
+    const showLmsOnSamePage = q.includeLms && q.lmsSectionLocation === "samePage";
+    const lmsBlock = showLmsOnSamePage
       ? `
         <section class="content-section">
-          <h2>שירות LMS</h2>
+          <h2>${escapeHtml(q.lmsServiceTitle || "שירות LMS")}</h2>
           <ul class="bullet-list">
             ${lines(q.lmsServiceText).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
           </ul>
@@ -3168,6 +3449,17 @@
         </ul>
       </section>
       ${lmsBlock}
+    `);
+  }
+
+  function renderLmsServicePage(q, sections) {
+    return page(`
+      <section class="content-section">
+        <h1 class="page-title">${sectionTitleLink("lms", sectionTitle(sections, "lms"))}</h1>
+        <ul class="bullet-list">
+          ${lines(q.lmsServiceText).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+        </ul>
+      </section>
     `);
   }
 
@@ -3353,7 +3645,41 @@
   }
 
   function buildSectionIndex(q) {
-    const definitions = getTemplate(q).sectionDefinitions;
+    const template = getTemplate(q);
+    const definitions = [...template.sectionDefinitions];
+
+    const showLmsAsSection = q.includeLms && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
+    
+    if (showLmsAsSection) {
+      const lmsTitle = q.lmsServiceTitle || "שירות LMS";
+      const lmsDef = ["includeLms", "lms", lmsTitle];
+      
+      const workIndex = definitions.findIndex(([, key]) => key === "work");
+      if (q.lmsSectionLocation === "newPageBefore") {
+        if (workIndex >= 0) {
+          definitions.splice(workIndex, 0, lmsDef);
+        } else {
+          const pricingIndex = definitions.findIndex(([, key]) => key === "pricing");
+          if (pricingIndex >= 0) {
+            definitions.splice(pricingIndex, 0, lmsDef);
+          } else {
+            definitions.push(lmsDef);
+          }
+        }
+      } else {
+        // newPageAfter or samePage (but workProcess not shown)
+        if (workIndex >= 0) {
+          definitions.splice(workIndex + 1, 0, lmsDef);
+        } else {
+          const pricingIndex = definitions.findIndex(([, key]) => key === "pricing");
+          if (pricingIndex >= 0) {
+            definitions.splice(pricingIndex, 0, lmsDef);
+          } else {
+            definitions.push(lmsDef);
+          }
+        }
+      }
+    }
 
     return definitions
       .filter(([flag]) => q[flag])
