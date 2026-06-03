@@ -307,11 +307,20 @@
   function start() {
     if (requiresGeneratorAuth() && !isGeneratorAuthenticated()) {
       setupAuthScreen();
+      dismissLoadingScreen();
       return;
     }
 
     unlockGenerator();
     init();
+  }
+
+  function dismissLoadingScreen() {
+    const loader = document.getElementById("loadingScreen");
+    if (loader) {
+      loader.classList.add("fade-out");
+      window.setTimeout(() => loader.remove(), 400);
+    }
   }
 
   function requiresGeneratorAuth() {
@@ -371,118 +380,124 @@
   }
 
   async function init() {
-    setupSupabase();
-    applyTemplateSettings(await readTemplateSettings());
-    clientLogoSettings = await readClientLogoSettings();
-    salespersonSettings = await readSalespersonSettings();
-    quote = normalizeQuote(await readInitialQuote());
-    lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
-    if (isClientMode) {
-      updateClientSignatureDateToToday();
-    }
-    if (!isClientMode) {
-      applySalespersonSettingsToQuote();
-      applyClientLogoSettingsToQuote();
-    }
-    document.body.classList.toggle("client-mode", isClientMode);
-    populateTemplateOptions();
-    populateSalespersonSettingsForm();
-    renderTemplateSettings();
-    populateForm();
-    renderCourseNameInputs();
-    renderPricingItems();
-    setupSignaturePad();
-    renderPreview();
-
-    form.addEventListener("input", handleFormInput);
-    form.addEventListener("change", handleFormInput);
-    courseNamesList.addEventListener("input", handleCourseNameInput);
-    document.querySelectorAll("[data-pricing-option-label]").forEach((field) => {
-      field.addEventListener("input", handlePricingOptionLabelInput);
-    });
-    sectionEditorText.addEventListener("input", handleSectionEditorInput);
-    closeSectionEditorButton.addEventListener("click", closeSectionEditor);
-    resetSectionTextButton.addEventListener("click", resetActiveSectionText);
-    addClientLogoButton.addEventListener("click", addClientLogo);
-    clientLogosList.addEventListener("input", handleClientLogoInput);
-    clientLogosList.addEventListener("change", handleClientLogoInput);
-    clientLogosList.addEventListener("click", handleClientLogoClick);
-    document.querySelectorAll("[data-section-edit]").forEach((button) => {
-      button.addEventListener("click", () => openSectionEditor(button.dataset.sectionEdit));
-    });
-    document.querySelector(".topbar-actions").addEventListener("click", handleTopbarActionClick, { capture: true });
-
-    document.getElementById("addPricingItem").addEventListener("click", () => {
-      quote.pricingItems.push({ title: "רכיב חדש", price: 0, notes: "", included: false });
-      quote.pricingItemsEdited = true;
-      renderPricingItems();
-      renderPreview();
-    });
-
-    document.getElementById("resetPricingItems").addEventListener("click", () => {
-      resetPricingItems();
-      renderPricingItems();
-      renderPreview();
-    });
-
-    document.getElementById("resetSample").addEventListener("click", () => {
-      setActiveSharedQuoteId("");
-      quote = normalizeQuote(sampleQuote);
+    try {
+      setupSupabase();
+      applyTemplateSettings(await readTemplateSettings());
+      clientLogoSettings = await readClientLogoSettings();
+      salespersonSettings = await readSalespersonSettings();
+      quote = normalizeQuote(await readInitialQuote());
       lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
-      applySalespersonSettingsToQuote();
-      applyClientLogoSettingsToQuote();
-      storageRemove(STORAGE_KEY);
+      if (isClientMode) {
+        updateClientSignatureDateToToday();
+      }
+      if (!isClientMode) {
+        applySalespersonSettingsToQuote();
+        applyClientLogoSettingsToQuote();
+      }
+      document.body.classList.toggle("client-mode", isClientMode);
+      populateTemplateOptions();
+      populateSalespersonSettingsForm();
+      renderTemplateSettings();
       populateForm();
       renderCourseNameInputs();
       renderPricingItems();
-      redrawSignaturePad();
+      setupSignaturePad();
       renderPreview();
-    });
 
-    saveDataButton.addEventListener("click", saveCurrentQuote);
+      form.addEventListener("input", handleFormInput);
+      form.addEventListener("change", handleFormInput);
+      courseNamesList.addEventListener("input", handleCourseNameInput);
+      document.querySelectorAll("[data-pricing-option-label]").forEach((field) => {
+        field.addEventListener("input", handlePricingOptionLabelInput);
+      });
+      sectionEditorText.addEventListener("input", handleSectionEditorInput);
+      closeSectionEditorButton.addEventListener("click", closeSectionEditor);
+      resetSectionTextButton.addEventListener("click", resetActiveSectionText);
+      addClientLogoButton.addEventListener("click", addClientLogo);
+      clientLogosList.addEventListener("input", handleClientLogoInput);
+      clientLogosList.addEventListener("change", handleClientLogoInput);
+      clientLogosList.addEventListener("click", handleClientLogoClick);
+      document.querySelectorAll("[data-section-edit]").forEach((button) => {
+        button.addEventListener("click", () => openSectionEditor(button.dataset.sectionEdit));
+      });
+      document.querySelector(".topbar-actions").addEventListener("click", handleTopbarActionClick, { capture: true });
 
-    document.getElementById("createClientLink").addEventListener("click", showClientLink);
-    copyClientLinkButton.addEventListener("click", copyClientLink);
-    document.getElementById("closeSharePanel").addEventListener("click", () => {
-      sharePanel.hidden = true;
-    });
-    document.getElementById("showSignedArchive").addEventListener("click", showSignedArchive);
-    signedArchiveSearchField.addEventListener("input", renderSignedArchive);
-    signedArchiveList.addEventListener("click", handleSignedArchiveClick);
-    document.getElementById("showQuoteTracking").addEventListener("click", showQuoteTracking);
-    quoteTrackingSearchField.addEventListener("input", renderQuoteTracking);
-    quoteTrackingList.addEventListener("click", handleQuoteTrackingClick);
-    document.getElementById("closeQuoteTracking").addEventListener("click", () => {
-      quoteTrackingPanel.hidden = true;
-    });
-    document.getElementById("showSettings").addEventListener("click", showSettings);
-    document.getElementById("logoutGenerator").addEventListener("click", logoutGenerator);
-    document.getElementById("closeSettings").addEventListener("click", () => {
-      settingsPanel.hidden = true;
-    });
-    document.getElementById("resetTemplateSettings").addEventListener("click", resetTemplateSettings);
-    salespersonSelectField.addEventListener("change", handleSalespersonSelectionChange);
-    salespersonNameField.addEventListener("input", handleSalespersonSettingsInput);
-    salespersonTitleField.addEventListener("input", handleSalespersonSettingsInput);
-    salespersonNameField.addEventListener("change", handleSalespersonSettingsCommit);
-    salespersonTitleField.addEventListener("change", handleSalespersonSettingsCommit);
-    document.getElementById("addSalespersonSettings").addEventListener("click", addSalespersonSettings);
-    document.getElementById("deleteSalespersonSettings").addEventListener("click", deleteSalespersonSettings);
-    document.getElementById("resetSalespersonSettings").addEventListener("click", resetSalespersonSettings);
-    document.getElementById("addTemplateSettings").addEventListener("click", addTemplateSettings);
-    templateSettingsList.addEventListener("input", handleTemplateSettingsInput);
-    templateSettingsList.addEventListener("change", handleTemplateSettingsInput);
-    templateSettingsList.addEventListener("click", handleTemplateSettingsClick);
-    document.getElementById("closeSignedArchive").addEventListener("click", () => {
-      signedArchivePanel.hidden = true;
-    });
-    document.getElementById("sendSignedQuote").addEventListener("click", sendSignedQuote);
-    document.getElementById("printQuote").addEventListener("click", showPrintPdfChoice);
-    clearSignatureButton.addEventListener("click", clearSignature);
+      document.getElementById("addPricingItem").addEventListener("click", () => {
+        quote.pricingItems.push({ title: "רכיב חדש", price: 0, notes: "", included: false });
+        quote.pricingItemsEdited = true;
+        renderPricingItems();
+        renderPreview();
+      });
 
-    if (getHashParam("pdf") === "1" && !isClientMode) {
-      clearPdfAutoOpenFlag();
-      window.setTimeout(openPrintDialog, 350);
+      document.getElementById("resetPricingItems").addEventListener("click", () => {
+        resetPricingItems();
+        renderPricingItems();
+        renderPreview();
+      });
+
+      document.getElementById("resetSample").addEventListener("click", () => {
+        setActiveSharedQuoteId("");
+        quote = normalizeQuote(sampleQuote);
+        lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
+        applySalespersonSettingsToQuote();
+        applyClientLogoSettingsToQuote();
+        storageRemove(STORAGE_KEY);
+        populateForm();
+        renderCourseNameInputs();
+        renderPricingItems();
+        redrawSignaturePad();
+        renderPreview();
+      });
+
+      saveDataButton.addEventListener("click", saveCurrentQuote);
+
+      document.getElementById("createClientLink").addEventListener("click", showClientLink);
+      copyClientLinkButton.addEventListener("click", copyClientLink);
+      document.getElementById("closeSharePanel").addEventListener("click", () => {
+        sharePanel.hidden = true;
+      });
+      document.getElementById("showSignedArchive").addEventListener("click", showSignedArchive);
+      signedArchiveSearchField.addEventListener("input", renderSignedArchive);
+      signedArchiveList.addEventListener("click", handleSignedArchiveClick);
+      document.getElementById("showQuoteTracking").addEventListener("click", showQuoteTracking);
+      quoteTrackingSearchField.addEventListener("input", renderQuoteTracking);
+      quoteTrackingList.addEventListener("click", handleQuoteTrackingClick);
+      document.getElementById("closeQuoteTracking").addEventListener("click", () => {
+        quoteTrackingPanel.hidden = true;
+      });
+      document.getElementById("showSettings").addEventListener("click", showSettings);
+      document.getElementById("logoutGenerator").addEventListener("click", logoutGenerator);
+      document.getElementById("closeSettings").addEventListener("click", () => {
+        settingsPanel.hidden = true;
+      });
+      document.getElementById("resetTemplateSettings").addEventListener("click", resetTemplateSettings);
+      salespersonSelectField.addEventListener("change", handleSalespersonSelectionChange);
+      salespersonNameField.addEventListener("input", handleSalespersonSettingsInput);
+      salespersonTitleField.addEventListener("input", handleSalespersonSettingsInput);
+      salespersonNameField.addEventListener("change", handleSalespersonSettingsCommit);
+      salespersonTitleField.addEventListener("change", handleSalespersonSettingsCommit);
+      document.getElementById("addSalespersonSettings").addEventListener("click", addSalespersonSettings);
+      document.getElementById("deleteSalespersonSettings").addEventListener("click", deleteSalespersonSettings);
+      document.getElementById("resetSalespersonSettings").addEventListener("click", resetSalespersonSettings);
+      document.getElementById("addTemplateSettings").addEventListener("click", addTemplateSettings);
+      templateSettingsList.addEventListener("input", handleTemplateSettingsInput);
+      templateSettingsList.addEventListener("change", handleTemplateSettingsInput);
+      templateSettingsList.addEventListener("click", handleTemplateSettingsClick);
+      document.getElementById("closeSignedArchive").addEventListener("click", () => {
+        signedArchivePanel.hidden = true;
+      });
+      document.getElementById("sendSignedQuote").addEventListener("click", sendSignedQuote);
+      document.getElementById("printQuote").addEventListener("click", showPrintPdfChoice);
+      clearSignatureButton.addEventListener("click", clearSignature);
+
+      if (getHashParam("pdf") === "1" && !isClientMode) {
+        clearPdfAutoOpenFlag();
+        window.setTimeout(openPrintDialog, 350);
+      }
+    } catch (error) {
+      console.error("Initialization failed", error);
+    } finally {
+      dismissLoadingScreen();
     }
   }
 
