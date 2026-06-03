@@ -323,6 +323,31 @@
     }
   }
 
+  let currentPublicIp = "";
+  async function initCurrentIp() {
+    try {
+      const response = await fetch("https://api.ipify.org?format=json");
+      if (response.ok) {
+        const data = await response.json();
+        currentPublicIp = data.ip || "";
+      }
+    } catch (e) {
+      console.warn("Could not fetch current public IP", e);
+    }
+  }
+
+  function isCurrentClientIp(eventIp) {
+    if (!eventIp) return false;
+    const cleanEventIp = eventIp.trim();
+    if (currentPublicIp && cleanEventIp === currentPublicIp) return true;
+
+    const hn = window.location.hostname;
+    if (hn === "localhost" || hn === "127.0.0.1") {
+      return ["localhost", "127.0.0.1"].includes(cleanEventIp);
+    }
+    return cleanEventIp === hn;
+  }
+
   function requiresGeneratorAuth() {
     return !isClientMode && !isPdfMode;
   }
@@ -382,6 +407,7 @@
   async function init() {
     try {
       setupSupabase();
+      initCurrentIp();
       applyTemplateSettings(await readTemplateSettings());
       clientLogoSettings = await readClientLogoSettings();
       salespersonSettings = await readSalespersonSettings();
@@ -2446,19 +2472,31 @@
   async function recordSharedQuoteOpen(id) {
     if (!id) return;
     const openedAt = new Date().toISOString();
-    appendQuoteTrackingOpen(id, openedAt);
-    await recordSharedQuoteOpenOnLocalServer(id, openedAt);
-    await recordSharedQuoteOpenOnSupabase(id, openedAt);
+    
+    let clientIp = "";
+    try {
+      const ipResponse = await fetch("https://api.ipify.org?format=json");
+      if (ipResponse.ok) {
+        const ipData = await ipResponse.json();
+        clientIp = ipData.ip || "";
+      }
+    } catch (e) {
+      // Ignore network errors
+    }
+
+    appendQuoteTrackingOpen(id, openedAt, clientIp);
+    await recordSharedQuoteOpenOnLocalServer(id, openedAt, clientIp);
+    await recordSharedQuoteOpenOnSupabase(id, openedAt, clientIp);
   }
 
-  async function recordSharedQuoteOpenOnLocalServer(id, openedAt) {
+  async function recordSharedQuoteOpenOnLocalServer(id, openedAt, ip) {
     if (!shouldUseLocalServer()) return false;
 
     try {
       const response = await fetch(`${LOCAL_SHARED_QUOTE_URL}?action=open`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, openedAt }),
+        body: JSON.stringify({ id, openedAt, ip }),
       });
       if (!response.ok) throw new Error(`Local shared quote tracking failed: ${response.status}`);
       return true;
@@ -2468,7 +2506,7 @@
     }
   }
 
-  async function recordSharedQuoteOpenOnSupabase(id, openedAt) {
+  async function recordSharedQuoteOpenOnSupabase(id, openedAt, ip) {
     if (!supabaseClient || !id) return false;
 
     try {
@@ -2482,7 +2520,7 @@
 
       const quoteData = data.quote || {};
       if (!quoteData.openEvents) quoteData.openEvents = [];
-      quoteData.openEvents.push({ openedAt });
+      quoteData.openEvents.push({ openedAt, ip });
 
       const { error: updateError } = await supabaseClient
         .from("shared_quotes")
@@ -2521,7 +2559,16 @@
     const openEvents = Array.isArray(record.openEvents) ? record.openEvents : [];
     const lastOpenedAt = openEvents[openEvents.length - 1]?.openedAt || "";
     const openTimes = openEvents.length
-      ? `<ol class="quote-tracking-times">${openEvents.map((event) => `<li>${escapeHtml(formatDateTime(event.openedAt))}</li>`).join("")}</ol>`
+      ? `<ol class="quote-tracking-times">${openEvents
+          .map((event) => {
+            const isCurrent = isCurrentClientIp(event.ip);
+            const badge = isCurrent
+              ? ` <span class="current-ip-badge" title="הפתיחה בוצעה מהמכשיר הנוכחי">(מכשיר זה)</span>`
+              : "";
+            const ipText = event.ip ? ` <span class="tracking-ip">[IP: ${escapeHtml(event.ip)}]</span>` : "";
+            return `<li>${escapeHtml(formatDateTime(event.openedAt))}${ipText}${badge}</li>`;
+          })
+          .join("")}</ol>`
       : `<p class="empty-note">עדיין לא נרשמו פתיחות.</p>`;
 
     return `
@@ -2699,13 +2746,13 @@
     writeQuoteTracking(mergeQuoteTrackingRecords(readQuoteTracking(), [record]));
   }
 
-  function appendQuoteTrackingOpen(id, openedAt) {
+  function appendQuoteTrackingOpen(id, openedAt, ip) {
     const records = readQuoteTracking();
     const index = records.findIndex((record) => record.id === id);
     if (index < 0) return;
 
     const record = normalizeQuoteTrackingRecord(records[index]);
-    record.openEvents.push({ openedAt });
+    record.openEvents.push({ openedAt, ip });
     records[index] = record;
     writeQuoteTracking(records);
   }
@@ -2753,7 +2800,10 @@
     const seen = new Set();
     return eventLists
       .flat()
-      .map((event) => ({ openedAt: typeof event === "string" ? event : event?.openedAt }))
+      .map((event) => {
+        if (typeof event === "string") return { openedAt: event };
+        return { openedAt: event?.openedAt, ip: event?.ip };
+      })
       .filter((event) => {
         if (!event.openedAt || seen.has(event.openedAt)) return false;
         seen.add(event.openedAt);

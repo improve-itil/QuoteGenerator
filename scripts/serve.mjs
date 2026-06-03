@@ -135,7 +135,17 @@ async function handleSharedQuotesRequest(request, response) {
         return;
       }
 
-      existing.openEvents.push({ openedAt: record.openedAt || new Date().toISOString() });
+      const rawIp = record.ip || request.headers["x-forwarded-for"] || request.socket.remoteAddress || "";
+      const cleanIp = rawIp === "::1" || rawIp === "::ffff:127.0.0.1"
+        ? "127.0.0.1"
+        : rawIp.startsWith("::ffff:")
+          ? rawIp.slice(7)
+          : rawIp;
+
+      existing.openEvents.push({
+        openedAt: record.openedAt || new Date().toISOString(),
+        ip: cleanIp
+      });
       quotes[record.id] = existing;
       writeLocalSharedQuotes(quotes);
       sendJson(response, 200, { ok: true });
@@ -217,7 +227,10 @@ function normalizeLocalSharedQuoteRecord(id, record) {
 function normalizeOpenEvents(openEvents) {
   return Array.isArray(openEvents)
     ? openEvents
-        .map((event) => ({ openedAt: typeof event === "string" ? event : event?.openedAt }))
+        .map((event) => {
+          if (typeof event === "string") return { openedAt: event };
+          return { openedAt: event?.openedAt, ip: event?.ip };
+        })
         .filter((event) => event.openedAt)
     : [];
 }
