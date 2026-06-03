@@ -7,9 +7,10 @@
   const TEMPLATE_SETTINGS_KEY = "improve-it-template-settings";
   const SALESPERSON_SETTINGS_KEY = "improve-it-salesperson-settings";
   const CLIENT_LOGO_SETTINGS_KEY = "improve-it-client-logo-settings";
-  const PDF_RENDER_URL = "http://localhost:4173/api/render-pdf";
-  const LOCAL_SIGNED_ARCHIVE_URL = "http://localhost:4173/api/signed-archive";
-  const LOCAL_SHARED_QUOTE_URL = "http://localhost:4173/api/shared-quotes";
+  const LOCAL_SERVER_ORIGIN = window.location.protocol === "file:" ? "http://localhost:4173" : window.location.origin;
+  const PDF_RENDER_URL = `${LOCAL_SERVER_ORIGIN}/api/render-pdf`;
+  const LOCAL_SIGNED_ARCHIVE_URL = `${LOCAL_SERVER_ORIGIN}/api/signed-archive`;
+  const LOCAL_SHARED_QUOTE_URL = `${LOCAL_SERVER_ORIGIN}/api/shared-quotes`;
   const DEFAULT_CLIENT_COMPANY = "ארגון לדוגמה";
   const DEFAULT_COURSE_COUNT = 3;
   const LEGACY_DEFAULT_COURSE_COUNT = 4;
@@ -1834,7 +1835,7 @@
       console.error("Could not create linked PDF", error);
       pdfButton.disabled = false;
       pdfButton.textContent = "הדפסה / PDF";
-      showAppAlert("לא ניתן ליצור PDF", "ודאו שהשרת המקומי רץ בכתובת http://localhost:4173 ונסו שוב.");
+      showAppAlert("לא ניתן ליצור PDF", `ודאו שהשרת המקומי רץ בכתובת ${LOCAL_SERVER_ORIGIN} ונסו שוב.`);
     }
   }
 
@@ -2680,7 +2681,14 @@
   }
 
   function shouldUseLocalServer() {
-    return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+    const hn = window.location.hostname;
+    return (
+      ["localhost", "127.0.0.1", ""].includes(hn) ||
+      hn.startsWith("192.168.") ||
+      hn.startsWith("10.") ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hn) ||
+      hn.endsWith(".local")
+    );
   }
 
   async function saveTemplateSettingsToSupabase(settings) {
