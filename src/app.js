@@ -2328,9 +2328,20 @@
     if (!supabaseClient || !id) return false;
 
     try {
+      const { data } = await supabaseClient
+        .from("shared_quotes")
+        .select("quote")
+        .eq("id", id)
+        .maybeSingle();
+
+      const mergedPayload = { ...payload };
+      if (data?.quote?.openEvents) {
+        mergedPayload.openEvents = data.quote.openEvents;
+      }
+
       const { error } = await supabaseClient.from("shared_quotes").upsert({
         id,
-        quote: payload,
+        quote: mergedPayload,
         created_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -2420,6 +2431,7 @@
     const openedAt = new Date().toISOString();
     appendQuoteTrackingOpen(id, openedAt);
     await recordSharedQuoteOpenOnLocalServer(id, openedAt);
+    await recordSharedQuoteOpenOnSupabase(id, openedAt);
   }
 
   async function recordSharedQuoteOpenOnLocalServer(id, openedAt) {
@@ -2439,8 +2451,37 @@
     }
   }
 
+  async function recordSharedQuoteOpenOnSupabase(id, openedAt) {
+    if (!supabaseClient || !id) return false;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("shared_quotes")
+        .select("quote")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return false;
+
+      const quoteData = data.quote || {};
+      if (!quoteData.openEvents) quoteData.openEvents = [];
+      quoteData.openEvents.push({ openedAt });
+
+      const { error: updateError } = await supabaseClient
+        .from("shared_quotes")
+        .update({ quote: quoteData })
+        .eq("id", id);
+      if (updateError) throw updateError;
+      return true;
+    } catch (error) {
+      console.warn("Could not record shared quote open on Supabase", error);
+      return false;
+    }
+  }
+
   async function showQuoteTracking() {
     await syncQuoteTrackingFromLocalServer();
+    await syncQuoteTrackingFromSupabase();
     renderQuoteTracking();
     quoteTrackingPanel.hidden = false;
     sharePanel.hidden = true;
@@ -2591,6 +2632,28 @@
     }
   }
 
+  async function syncQuoteTrackingFromSupabase() {
+    if (!supabaseClient) return;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("shared_quotes")
+        .select("id, quote, created_at");
+      if (error) throw error;
+      if (Array.isArray(data)) {
+        const records = data.map((row) => ({
+          id: row.id,
+          createdAt: row.created_at,
+          quote: row.quote,
+          openEvents: row.quote?.openEvents || [],
+        }));
+        writeQuoteTracking(mergeQuoteTrackingRecords(records, readQuoteTracking()));
+      }
+    } catch (error) {
+      console.warn("Could not sync quote tracking from Supabase", error);
+    }
+  }
+
   function buildQuoteTrackingRecord(id, payload) {
     return {
       id,
@@ -2656,9 +2719,11 @@
     const quote = record?.quote && typeof record.quote === "object" ? record.quote : record || {};
     const openEvents = Array.isArray(record?.openEvents)
       ? record.openEvents
-      : Array.isArray(record?.openedAt)
-        ? record.openedAt.map((openedAt) => ({ openedAt }))
-        : [];
+      : Array.isArray(quote?.openEvents)
+        ? quote.openEvents
+        : Array.isArray(record?.openedAt)
+          ? record.openedAt.map((openedAt) => ({ openedAt }))
+          : [];
     return {
       id: record?.id || "",
       createdAt: record?.createdAt || record?.created_at || "",
