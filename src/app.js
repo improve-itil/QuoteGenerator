@@ -323,31 +323,6 @@
     }
   }
 
-  let currentPublicIp = "";
-  async function initCurrentIp() {
-    try {
-      const response = await fetch("https://api.ipify.org?format=json");
-      if (response.ok) {
-        const data = await response.json();
-        currentPublicIp = data.ip || "";
-      }
-    } catch (e) {
-      console.warn("Could not fetch current public IP", e);
-    }
-  }
-
-  function isCurrentClientIp(eventIp) {
-    if (!eventIp) return false;
-    const cleanEventIp = eventIp.trim();
-    if (currentPublicIp && cleanEventIp === currentPublicIp) return true;
-
-    const hn = window.location.hostname;
-    if (hn === "localhost" || hn === "127.0.0.1") {
-      return ["localhost", "127.0.0.1"].includes(cleanEventIp);
-    }
-    return cleanEventIp === hn;
-  }
-
   function requiresGeneratorAuth() {
     return !isClientMode && !isPdfMode;
   }
@@ -407,7 +382,6 @@
   async function init() {
     try {
       setupSupabase();
-      initCurrentIp();
       applyTemplateSettings(await readTemplateSettings());
       clientLogoSettings = await readClientLogoSettings();
       salespersonSettings = await readSalespersonSettings();
@@ -2472,31 +2446,21 @@
   async function recordSharedQuoteOpen(id) {
     if (!id) return;
     const openedAt = new Date().toISOString();
-    
-    let clientIp = "";
-    try {
-      const ipResponse = await fetch("https://api.ipify.org?format=json");
-      if (ipResponse.ok) {
-        const ipData = await ipResponse.json();
-        clientIp = ipData.ip || "";
-      }
-    } catch (e) {
-      // Ignore network errors
-    }
-
-    appendQuoteTrackingOpen(id, openedAt, clientIp);
-    await recordSharedQuoteOpenOnLocalServer(id, openedAt, clientIp);
-    await recordSharedQuoteOpenOnSupabase(id, openedAt, clientIp);
+    const device = getDeviceDescription();
+    const viewerId = getOrCreateViewerId();
+    appendQuoteTrackingOpen(id, openedAt, device, viewerId);
+    await recordSharedQuoteOpenOnLocalServer(id, openedAt, device, viewerId);
+    await recordSharedQuoteOpenOnSupabase(id, openedAt, device, viewerId);
   }
 
-  async function recordSharedQuoteOpenOnLocalServer(id, openedAt, ip) {
+  async function recordSharedQuoteOpenOnLocalServer(id, openedAt, device = "", viewerId = "") {
     if (!shouldUseLocalServer()) return false;
 
     try {
       const response = await fetch(`${LOCAL_SHARED_QUOTE_URL}?action=open`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, openedAt, ip }),
+        body: JSON.stringify({ id, openedAt, device, viewerId }),
       });
       if (!response.ok) throw new Error(`Local shared quote tracking failed: ${response.status}`);
       return true;
@@ -2506,7 +2470,7 @@
     }
   }
 
-  async function recordSharedQuoteOpenOnSupabase(id, openedAt, ip) {
+  async function recordSharedQuoteOpenOnSupabase(id, openedAt, device = "", viewerId = "") {
     if (!supabaseClient || !id) return false;
 
     try {
@@ -2520,7 +2484,7 @@
 
       const quoteData = data.quote || {};
       if (!quoteData.openEvents) quoteData.openEvents = [];
-      quoteData.openEvents.push({ openedAt, ip });
+      quoteData.openEvents.push({ openedAt, device, viewerId });
 
       const { error: updateError } = await supabaseClient
         .from("shared_quotes")
@@ -2559,16 +2523,7 @@
     const openEvents = Array.isArray(record.openEvents) ? record.openEvents : [];
     const lastOpenedAt = openEvents[openEvents.length - 1]?.openedAt || "";
     const openTimes = openEvents.length
-      ? `<ol class="quote-tracking-times">${openEvents
-          .map((event) => {
-            const isCurrent = isCurrentClientIp(event.ip);
-            const badge = isCurrent
-              ? ` <span class="current-ip-badge" title="הפתיחה בוצעה מהמכשיר הנוכחי">(מכשיר זה)</span>`
-              : "";
-            const ipText = event.ip ? ` <span class="tracking-ip">[IP: ${escapeHtml(event.ip)}]</span>` : "";
-            return `<li>${escapeHtml(formatDateTime(event.openedAt))}${ipText}${badge}</li>`;
-          })
-          .join("")}</ol>`
+      ? `<ol class="quote-tracking-times">${openEvents.map((event) => `<li>${escapeHtml(formatDateTime(event.openedAt))}${renderEventMeta(event)}</li>`).join("")}</ol>`
       : `<p class="empty-note">עדיין לא נרשמו פתיחות.</p>`;
 
     return `
@@ -2590,6 +2545,19 @@
         </div>
       </div>
     `;
+  }
+
+  function renderEventMeta(event) {
+    const parts = [];
+    if (event.device) {
+      parts.push(event.device);
+    }
+    const currentViewerId = getOrCreateViewerId();
+    if (event.viewerId && event.viewerId === currentViewerId) {
+      parts.push("המחשב הנוכחי");
+    }
+    if (!parts.length) return "";
+    return ` <span class="quote-tracking-meta-tag">(${parts.join(", ")})</span>`;
   }
 
   async function handleQuoteTrackingClick(event) {
@@ -2746,13 +2714,13 @@
     writeQuoteTracking(mergeQuoteTrackingRecords(readQuoteTracking(), [record]));
   }
 
-  function appendQuoteTrackingOpen(id, openedAt, ip) {
+  function appendQuoteTrackingOpen(id, openedAt, device = "", viewerId = "") {
     const records = readQuoteTracking();
     const index = records.findIndex((record) => record.id === id);
     if (index < 0) return;
 
     const record = normalizeQuoteTrackingRecord(records[index]);
-    record.openEvents.push({ openedAt, ip });
+    record.openEvents.push({ openedAt, device, viewerId });
     records[index] = record;
     writeQuoteTracking(records);
   }
@@ -2801,8 +2769,14 @@
     return eventLists
       .flat()
       .map((event) => {
-        if (typeof event === "string") return { openedAt: event };
-        return { openedAt: event?.openedAt, ip: event?.ip };
+        if (typeof event === "string") {
+          return { openedAt: event, device: "", viewerId: "" };
+        }
+        return {
+          openedAt: event?.openedAt || "",
+          device: event?.device || "",
+          viewerId: event?.viewerId || "",
+        };
       })
       .filter((event) => {
         if (!event.openedAt || seen.has(event.openedAt)) return false;
@@ -2810,6 +2784,39 @@
         return true;
       })
       .sort((a, b) => String(a.openedAt).localeCompare(String(b.openedAt)));
+  }
+
+  function getOrCreateViewerId() {
+    const key = "improve-it-quote-viewer-id";
+    try {
+      let id = window.localStorage.getItem(key);
+      if (!id) {
+        id = `v-${Math.random().toString(36).slice(2)}-${Date.now()}`;
+        window.localStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return "temp-viewer";
+    }
+  }
+
+  function getDeviceDescription() {
+    const ua = navigator.userAgent;
+    if (/like Mac OS X/.test(ua)) {
+      if (/iPhone/.test(ua)) return "iPhone";
+      if (/iPad/.test(ua)) return "iPad";
+      return "Mac / iOS";
+    }
+    if (/Android/.test(ua)) {
+      if (/Mobile/.test(ua)) return "Android (נייד)";
+      return "Android (טאבלט)";
+    }
+    if (/Macintosh/.test(ua)) return "Mac";
+    if (/Windows/.test(ua)) return "מחשב Windows";
+    if (/Linux/.test(ua)) return "מחשב Linux";
+    
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+    return isMobile ? "מכשיר נייד" : "מחשב";
   }
 
   function shouldUseLocalServer() {
