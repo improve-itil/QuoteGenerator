@@ -693,6 +693,11 @@
     if (lmsSettingsSec) {
       lmsSettingsSec.hidden = !quote.includeLms;
     }
+
+    const additionalUserPriceField = document.getElementById("additionalUserPriceField");
+    if (additionalUserPriceField) {
+      additionalUserPriceField.hidden = !isLmsRentalTemplate(quote.templateId);
+    }
   }
 
   function renderCourseNameInputs() {
@@ -3785,6 +3790,12 @@
 
   function getTemplate(q) {
     return TEMPLATE_DEFINITIONS[q.templateId] || TEMPLATE_DEFINITIONS[getFallbackTemplateId()];
+  }
+
+  function isLmsRentalTemplate(templateId) {
+    const template = TEMPLATE_DEFINITIONS[templateId];
+    if (!template) return false;
+    return templateId.toLowerCase().includes("lms") || String(template.label || "").toLowerCase().includes("lms");
   }
 
   function getFallbackTemplateId() {
