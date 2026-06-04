@@ -537,7 +537,7 @@ body.auth-required .app-shell {
   gap: 4px;
   max-height: 110px;
   margin: 0;
-  padding: 0 18px 0 0;
+  padding: 0 28px 0 0;
   overflow: auto;
   color: var(--muted);
 }
