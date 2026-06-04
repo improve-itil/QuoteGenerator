@@ -12,7 +12,7 @@
   const LOCAL_SIGNED_ARCHIVE_URL = `${LOCAL_SERVER_ORIGIN}/api/signed-archive`;
   const LOCAL_SHARED_QUOTE_URL = `${LOCAL_SERVER_ORIGIN}/api/shared-quotes`;
   const GENERATOR_DOCUMENT_TITLE = "מחולל הצעות מחיר | Improve-IT";
-  const SHARE_PREVIEW_VERSION = "20260604-whatsapp-preview-title";
+  const SHARE_PREVIEW_VERSION = "1";
   const DEFAULT_CLIENT_COMPANY = "ארגון לדוגמה";
   const DEFAULT_COURSE_COUNT = 3;
   const LEGACY_DEFAULT_COURSE_COUNT = 4;
@@ -274,7 +274,7 @@
   let salespersonSettings = normalizeSalespersonSettings();
   let clientLogoSettings = DEFAULT_CLIENT_LOGOS.map((logo) => ({ ...logo }));
   let clientLogoSaveTimer = null;
-  const isClientMode = getHashParam("mode") === "client";
+  const isClientMode = getShareMode() === "client";
   let lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
   const isPdfMode = getHashParam("pdf") === "1";
 
@@ -542,7 +542,7 @@
   }
 
   async function readInitialQuote() {
-    const sharedQuoteId = getHashParam("id");
+    const sharedQuoteId = getSharedQuoteIdFromHash();
     if (sharedQuoteId) {
       const sharedQuote = await readSharedQuote(sharedQuoteId);
       if (sharedQuote) {
@@ -552,7 +552,7 @@
       }
     }
 
-    const compressedHashData = getHashParam("z");
+    const compressedHashData = getCompressedQuoteDataFromHash();
     if (compressedHashData) {
       try {
         return JSON.parse(await decompressQuotePayload(compressedHashData));
@@ -584,6 +584,22 @@
 
   function getHashParam(name) {
     return new URLSearchParams(window.location.hash.replace(/^#/, "")).get(name);
+  }
+
+  function getShareMode() {
+    const explicitMode = getHashParam("mode");
+    if (explicitMode) return explicitMode;
+    if (getHashParam("c") || getHashParam("cz")) return "client";
+    if (getHashParam("e") || getHashParam("ez")) return "edit";
+    return "";
+  }
+
+  function getSharedQuoteIdFromHash() {
+    return getHashParam("id") || getHashParam("c") || getHashParam("e") || "";
+  }
+
+  function getCompressedQuoteDataFromHash() {
+    return getHashParam("z") || getHashParam("cz") || getHashParam("ez") || "";
   }
 
   function updateClientDocumentTitle() {
@@ -2253,13 +2269,13 @@
       
       if (shareId) {
         setActiveSharedQuoteId(shareId);
-        clientLink = `${getShareBaseUrl()}#mode=client&id=${encodeURIComponent(shareId)}`;
-        editLink = `${getShareBaseUrl()}#mode=edit&id=${encodeURIComponent(shareId)}`;
+        clientLink = `${getShareBaseUrl()}#c=${encodeURIComponent(shareId)}`;
+        editLink = `${getShareBaseUrl()}#e=${encodeURIComponent(shareId)}`;
       } else {
         setActiveSharedQuoteId("");
         const encoded = await compressQuotePayload(JSON.stringify(payload));
-        clientLink = `${getShareBaseUrl()}#mode=client&z=${encoded}`;
-        editLink = `${getShareBaseUrl()}#mode=edit&z=${encoded}`;
+        clientLink = `${getShareBaseUrl()}#cz=${encoded}`;
+        editLink = `${getShareBaseUrl()}#ez=${encoded}`;
       }
       
       clientLinkOutput.value = clientLink;
@@ -2290,15 +2306,15 @@
 
     const encoded = await compressQuotePayload(JSON.stringify(payload));
     setActiveSharedQuoteId("");
-    return `${getShareBaseUrl()}#mode=client&z=${encoded}`;
+    return `${getShareBaseUrl()}#cz=${encoded}`;
   }
 
   function buildSharedQuoteLink(id) {
-    return `${getShareBaseUrl()}#mode=client&id=${encodeURIComponent(id)}`;
+    return `${getShareBaseUrl()}#c=${encodeURIComponent(id)}`;
   }
 
   function buildSharedQuoteEditLink(id) {
-    return `${getShareBaseUrl()}#mode=edit&id=${encodeURIComponent(id)}`;
+    return `${getShareBaseUrl()}#e=${encodeURIComponent(id)}`;
   }
 
   function buildShareQuotePayload() {
@@ -2334,7 +2350,7 @@
       return window.location.href.split("#")[0];
     }
 
-    return `${window.location.origin}${window.location.pathname}?preview=${SHARE_PREVIEW_VERSION}`;
+    return `${window.location.origin}${window.location.pathname}?p=${SHARE_PREVIEW_VERSION}`;
   }
 
   function openPrintDialog() {
@@ -2494,7 +2510,7 @@
       const archive = readSignedArchive();
       const signedRecord = {
         id: buildSignedQuoteRecordId(),
-        sharedQuoteId: activeSharedQuoteId || getHashParam("id") || "",
+        sharedQuoteId: activeSharedQuoteId || getSharedQuoteIdFromHash(),
         signedAt: new Date().toISOString(),
         quote: normalizeQuote(quote),
       };
@@ -2517,7 +2533,7 @@
   }
 
   function buildSignedQuoteRecordId() {
-    const sharedQuoteId = activeSharedQuoteId || getHashParam("id");
+    const sharedQuoteId = activeSharedQuoteId || getSharedQuoteIdFromHash();
     if (sharedQuoteId) return `${sharedQuoteId}-signed-${Date.now()}`;
 
     return `${quote.quoteNumber || "quote"}-${Date.now()}`;
@@ -2890,7 +2906,7 @@
   }
 
   async function saveSignedQuoteToSharedQuote(record) {
-    const sharedQuoteId = record.sharedQuoteId || activeSharedQuoteId || getHashParam("id");
+    const sharedQuoteId = record.sharedQuoteId || activeSharedQuoteId || getSharedQuoteIdFromHash();
     if (!sharedQuoteId) return false;
 
     const sharedQuote = await readSharedQuote(sharedQuoteId);
