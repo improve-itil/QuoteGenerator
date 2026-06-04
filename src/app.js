@@ -102,6 +102,7 @@
         showTerms: true,
         showCancellation: true,
         pricingPlanLabel: "השכרה - מסלול שנתי",
+        subjectLabel: "הנדון",
       },
       sectionDefinitions: [
         ["showCompanyProfile", "profile", "פרופיל חברה"],
@@ -128,6 +129,7 @@
         showTerms: true,
         showCancellation: false,
         pricingPlanLabel: "תמחור מסחרי",
+        subjectLabel: "הנדון",
       },
       sectionDefinitions: [
         ["showBackground", "background", "רקע"],
@@ -214,6 +216,7 @@
     contactName: "איש קשר לדוגמה",
     contactTitle: "תפקיד לדוגמה",
     subject: buildDefaultSubject(DEFAULT_CLIENT_COMPANY),
+    subjectLabel: "הנדון",
     signatoryName: DEFAULT_SALESPERSON_SETTINGS.advisors[0].name,
     signatoryTitle: DEFAULT_SALESPERSON_SETTINGS.advisors[0].title,
     clientSignerName: "",
@@ -295,6 +298,7 @@
   const quoteTrackingPanel = document.getElementById("quoteTrackingPanel");
   const quoteTrackingList = document.getElementById("quoteTrackingList");
   const quoteTrackingSearchField = document.getElementById("quoteTrackingSearch");
+  const hideCurrentDeviceOpensCheckbox = document.getElementById("hideCurrentDeviceOpens");
   const settingsPanel = document.getElementById("settingsPanel");
   const priceListPanel = document.getElementById("priceListPanel");
   const priceListContent = document.getElementById("priceListContent");
@@ -485,6 +489,7 @@
       signedArchiveList.addEventListener("click", handleSignedArchiveClick);
       document.getElementById("showQuoteTracking").addEventListener("click", showQuoteTracking);
       quoteTrackingSearchField.addEventListener("input", renderQuoteTracking);
+      hideCurrentDeviceOpensCheckbox.addEventListener("change", renderQuoteTracking);
       quoteTrackingList.addEventListener("click", handleQuoteTrackingClick);
       document.getElementById("closeQuoteTracking").addEventListener("click", () => {
         quoteTrackingPanel.hidden = true;
@@ -613,6 +618,7 @@
     });
     const template = TEMPLATE_DEFINITIONS[merged.templateId] || TEMPLATE_DEFINITIONS[getFallbackTemplateId()];
     const templateDefaults = template?.defaults || {};
+    merged.subjectLabel = typeof raw.subjectLabel === "string" ? raw.subjectLabel : (templateDefaults.subjectLabel || "הנדון");
 
     const editableFields = [
       "companyProfileText",
@@ -1285,6 +1291,10 @@
             <label>
               תיאור מסלול ברירת מחדל
               <input data-template-default-text="pricingPlanLabel" type="text" value="${escapeAttr(template.defaults?.pricingPlanLabel || "")}" />
+            </label>
+            <label>
+              כותרת הנדון ברירת מחדל
+              <input data-template-default-text="subjectLabel" type="text" value="${escapeAttr(template.defaults?.subjectLabel || "הנדון")}" />
             </label>
             <div class="template-section-settings">
               <div class="template-section-header">
@@ -3030,7 +3040,11 @@
 
   function renderQuoteTrackingRecord(record) {
     const quote = record.quote || {};
-    const openEvents = Array.isArray(record.openEvents) ? record.openEvents : [];
+    let openEvents = Array.isArray(record.openEvents) ? record.openEvents : [];
+    if (hideCurrentDeviceOpensCheckbox && hideCurrentDeviceOpensCheckbox.checked) {
+      const currentViewerId = getOrCreateViewerId();
+      openEvents = openEvents.filter((event) => event.viewerId !== currentViewerId);
+    }
     const lastOpenedAt = openEvents[openEvents.length - 1]?.openedAt || "";
     const openTimes = openEvents.length
       ? `<ol class="quote-tracking-times">${openEvents.map((event) => `<li>${escapeHtml(formatDateTime(event.openedAt))}${renderEventMeta(event)}</li>`).join("")}</ol>`
@@ -3158,22 +3172,32 @@
 
   function quoteTrackingMatchesSearch(record, searchTerm) {
     const quote = record.quote || {};
+    let openEvents = record.openEvents || [];
+    if (hideCurrentDeviceOpensCheckbox && hideCurrentDeviceOpensCheckbox.checked) {
+      const currentViewerId = getOrCreateViewerId();
+      openEvents = openEvents.filter((event) => event.viewerId !== currentViewerId);
+    }
     return normalizeSearchText(
       [
         quote.clientCompany,
         quote.quoteNumber,
         quote.subject,
         formatDateTime(record.createdAt),
-        ...(record.openEvents || []).map((event) => formatDateTime(event.openedAt)),
+        ...openEvents.map((event) => formatDateTime(event.openedAt)),
       ].join(" ")
     ).includes(searchTerm);
   }
 
   function isVisibleQuoteTrackingRecord(record) {
     const quote = record.quote || {};
+    let openEvents = record.openEvents || [];
+    if (hideCurrentDeviceOpensCheckbox && hideCurrentDeviceOpensCheckbox.checked) {
+      const currentViewerId = getOrCreateViewerId();
+      openEvents = openEvents.filter((event) => event.viewerId !== currentViewerId);
+    }
     return Boolean(
       record.createdAt ||
-        record.openEvents?.length ||
+        openEvents?.length ||
         quote.clientCompany ||
         quote.quoteNumber ||
         quote.subject
@@ -3602,11 +3626,14 @@
       )
       .join("");
 
+    const subjectLabelText = typeof q.subjectLabel === "string" ? q.subjectLabel : "הנדון";
+    const subjectHeaderHtml = subjectLabelText ? `${escapeHtml(subjectLabelText)}: ` : "";
+
     return page(`
       <p class="date-line">${formatDate(q.quoteDate)}</p>
       <p class="recipient">לכבוד<br />${escapeHtml(q.contactName)}${contactTitle}<br />${escapeHtml(q.clientCompany)}</p>
       <p>${escapeHtml(greetingName)} שלום רב,</p>
-      <div class="subject">הנדון: ${escapeHtml(q.subject)}</div>
+      <div class="subject">${subjectHeaderHtml}${escapeHtml(q.subject)}</div>
       <p>תודה על פנייתך לקבלת הצעת מחיר ל${escapeHtml(serviceDescription)} עבור ${escapeHtml(q.clientCompany)}, להלן הצעתנו:</p>
       <p>המסמך שלהלן כולל את:</p>
       <table class="toc"><tbody>${toc}</tbody></table>

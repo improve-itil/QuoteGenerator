@@ -89,6 +89,10 @@
           <input id="quoteTrackingSearch" type="search" placeholder="חיפוש לפי חברה, מספר הצעה, נושא או תאריך" />
         </label>
         <div class="section-actions">
+          <label class="checkbox-inline">
+            <span>הסתר פתיחות מהמכשיר הנוכחי</span>
+            <input id="hideCurrentDeviceOpens" type="checkbox" checked />
+          </label>
           <button type="button" class="compact" id="closeQuoteTracking">סגירה</button>
         </div>
         <div id="quoteTrackingList" class="signed-archive-list quote-tracking-list"></div>
@@ -193,7 +197,11 @@
                   תפקיד איש קשר
                   <input name="contactTitle" type="text" />
                 </label>
-                <label class="wide">
+                <label>
+                  כותרת הנדון
+                  <input name="subjectLabel" type="text" />
+                </label>
+                <label>
                   נושא
                   <input name="subject" type="text" />
                 </label>
