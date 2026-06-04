@@ -12,6 +12,7 @@
   const LOCAL_SIGNED_ARCHIVE_URL = `${LOCAL_SERVER_ORIGIN}/api/signed-archive`;
   const LOCAL_SHARED_QUOTE_URL = `${LOCAL_SERVER_ORIGIN}/api/shared-quotes`;
   const GENERATOR_DOCUMENT_TITLE = "מחולל הצעות מחיר | Improve-IT";
+  const SHARE_PREVIEW_VERSION = "20260604-whatsapp-preview-title";
   const DEFAULT_CLIENT_COMPANY = "ארגון לדוגמה";
   const DEFAULT_COURSE_COUNT = 3;
   const LEGACY_DEFAULT_COURSE_COUNT = 4;
@@ -2333,7 +2334,7 @@
       return window.location.href.split("#")[0];
     }
 
-    return `${window.location.origin}${window.location.pathname}`;
+    return `${window.location.origin}${window.location.pathname}?preview=${SHARE_PREVIEW_VERSION}`;
   }
 
   function openPrintDialog() {
