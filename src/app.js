@@ -11,6 +11,7 @@
   const PDF_RENDER_URL = `${LOCAL_SERVER_ORIGIN}/api/render-pdf`;
   const LOCAL_SIGNED_ARCHIVE_URL = `${LOCAL_SERVER_ORIGIN}/api/signed-archive`;
   const LOCAL_SHARED_QUOTE_URL = `${LOCAL_SERVER_ORIGIN}/api/shared-quotes`;
+  const GENERATOR_DOCUMENT_TITLE = "מחולל הצעות מחיר | Improve-IT";
   const DEFAULT_CLIENT_COMPANY = "ארגון לדוגמה";
   const DEFAULT_COURSE_COUNT = 3;
   const LEGACY_DEFAULT_COURSE_COUNT = 4;
@@ -416,8 +417,10 @@
       lastCompanyTextValue = quote.clientCompany || "ארגון לדוגמה";
       if (isClientMode) {
         updateClientSignatureDateToToday();
+        updateClientDocumentTitle();
       }
       if (!isClientMode) {
+        document.title = GENERATOR_DOCUMENT_TITLE;
         applySalespersonSettingsToQuote();
         applyClientLogoSettingsToQuote();
       }
@@ -580,6 +583,22 @@
 
   function getHashParam(name) {
     return new URLSearchParams(window.location.hash.replace(/^#/, "")).get(name);
+  }
+
+  function updateClientDocumentTitle() {
+    document.title = isClientMode ? buildClientDocumentTitle(quote) : GENERATOR_DOCUMENT_TITLE;
+  }
+
+  function buildClientDocumentTitle(sourceQuote) {
+    const subject = String(sourceQuote?.subject || "").trim();
+    const clientCompany = String(sourceQuote?.clientCompany || "").trim();
+    let title = subject || (clientCompany ? `הצעת מחיר עבור ${clientCompany}` : "הצעת מחיר");
+
+    if (clientCompany && !title.includes(clientCompany)) {
+      title = `${title} - ${clientCompany}`;
+    }
+
+    return `${title} | Improve-IT`;
   }
 
   function normalizeQuote(raw, options = {}) {
