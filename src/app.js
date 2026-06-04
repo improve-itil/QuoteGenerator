@@ -25,7 +25,10 @@
       },
     ],
   };
-  const LMS_SINGLE_COURSE_TIERS = [
+  const PRICE_LIST_STORAGE_KEY = "improve-it-price-list";
+  let isEditingPriceList = false;
+
+  let LMS_SINGLE_COURSE_TIERS = [
     { maxUsers: 60, price: 2940 },
     { maxUsers: 90, price: 3600 },
     { maxUsers: 120, price: 3840 },
@@ -49,7 +52,7 @@
     { maxUsers: 950, price: 8800 },
     { maxUsers: 1000, price: 9100 },
   ];
-  const LMS_THREE_COURSE_PACKAGE_TIERS = [
+  let LMS_THREE_COURSE_PACKAGE_TIERS = [
     { maxUsers: 180, price: 4900 },
     { maxUsers: 210, price: 5500 },
     { maxUsers: 250, price: 5900 },
@@ -63,10 +66,24 @@
     { maxUsers: 650, price: 8200 },
     { maxUsers: 700, price: 8500 },
   ];
-  const SHELF_COURSE_GROUP_A_PACKAGE_PRICES = {
+  let SHELF_COURSE_GROUP_A_PACKAGE_PRICES = {
     1: 4900,
     2: 7500,
     3: 8900,
+  };
+  let LMS_ADDITIONAL_COURSE_PRICES = {
+    500: 1200,
+    700: 1900,
+    850: 2200,
+    default: 2900
+  };
+  let OTHER_PRICES = {
+    translationLms: 750,
+    translationPurchase: 950,
+    voiceoverHebrewLms: 450,
+    voiceoverHebrewPurchase: 350,
+    voiceoverEnglish: 950,
+    purchaseAdditionalCourse: 2500
   };
   const memoryStorage = new Map();
   let supabaseClient = null;
@@ -474,6 +491,9 @@
       });
       document.getElementById("showSettings").addEventListener("click", showSettings);
       document.getElementById("showPriceList").addEventListener("click", showPriceList);
+      document.getElementById("editPriceListBtn").addEventListener("click", startEditingPriceList);
+      document.getElementById("savePriceListBtn").addEventListener("click", savePriceListEdits);
+      document.getElementById("cancelPriceListBtn").addEventListener("click", cancelPriceListEdits);
       document.getElementById("logoutGenerator").addEventListener("click", logoutGenerator);
       document.getElementById("closeSettings").addEventListener("click", () => {
         settingsPanel.hidden = true;
@@ -970,6 +990,8 @@
   }
 
   function showPriceList() {
+    isEditingPriceList = false;
+    togglePriceListEditButtons(false);
     renderPriceList();
     priceListPanel.hidden = false;
     sharePanel.hidden = true;
@@ -978,89 +1000,268 @@
     settingsPanel.hidden = true;
   }
 
+  function startEditingPriceList() {
+    isEditingPriceList = true;
+    togglePriceListEditButtons(true);
+    renderPriceList();
+  }
+
+  function cancelPriceListEdits() {
+    isEditingPriceList = false;
+    togglePriceListEditButtons(false);
+    renderPriceList();
+  }
+
+  function savePriceListEdits() {
+    // 1. Read single course tiers
+    const singleTiers = [];
+    document.querySelectorAll("[data-single-tier-users]").forEach((input) => {
+      const idx = input.dataset.singleTierUsers;
+      const priceInput = document.querySelector(`[data-single-tier-price="${idx}"]`);
+      if (priceInput) {
+        singleTiers.push({
+          maxUsers: numberOr(input.value, 0),
+          price: numberOr(priceInput.value, 0)
+        });
+      }
+    });
+    if (singleTiers.length > 0) {
+      LMS_SINGLE_COURSE_TIERS = singleTiers.sort((a, b) => a.maxUsers - b.maxUsers);
+    }
+
+    // 2. Read triple course tiers
+    const tripleTiers = [];
+    document.querySelectorAll("[data-triple-tier-users]").forEach((input) => {
+      const idx = input.dataset.tripleTierUsers;
+      const priceInput = document.querySelector(`[data-triple-tier-price="${idx}"]`);
+      if (priceInput) {
+        tripleTiers.push({
+          maxUsers: numberOr(input.value, 0),
+          price: numberOr(priceInput.value, 0)
+        });
+      }
+    });
+    if (tripleTiers.length > 0) {
+      LMS_THREE_COURSE_PACKAGE_TIERS = tripleTiers.sort((a, b) => a.maxUsers - b.maxUsers);
+    }
+
+    // 3. Read additional course pricing
+    document.querySelectorAll("[data-extra-lms]").forEach((input) => {
+      const key = input.dataset.extraLms;
+      LMS_ADDITIONAL_COURSE_PRICES[key] = numberOr(input.value, 0);
+    });
+
+    // 4. Read shelf package prices
+    document.querySelectorAll("[data-purchase-qty]").forEach((input) => {
+      const qty = input.dataset.purchaseQty;
+      SHELF_COURSE_GROUP_A_PACKAGE_PRICES[qty] = numberOr(input.value, 0);
+    });
+
+    // 5. Read other prices
+    document.querySelectorAll("[data-other-price]").forEach((input) => {
+      const key = input.dataset.otherPrice;
+      OTHER_PRICES[key] = numberOr(input.value, 0);
+    });
+
+    // Save template settings (which includes the priceList) to Supabase & local storage
+    saveTemplateSettings();
+
+    isEditingPriceList = false;
+    togglePriceListEditButtons(false);
+    renderPriceList();
+
+    // Reset current pricing items in the form to reflect updated price list immediately
+    resetPricingItems();
+    renderPricingItems();
+    renderPreview();
+  }
+
+  function togglePriceListEditButtons(editing) {
+    document.getElementById("editPriceListBtn").hidden = editing;
+    document.getElementById("closePriceList").hidden = editing;
+    document.getElementById("savePriceListBtn").hidden = !editing;
+    document.getElementById("cancelPriceListBtn").hidden = !editing;
+  }
+
   function renderPriceList() {
-    priceListContent.innerHTML = `
-      <div class="price-tables-grid">
-        <div class="price-table-card">
-          <h4>השכרת LMS - לומדה אחת במערכת</h4>
-          <div class="price-table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>עד עובדים</th>
-                  <th>מחיר שנתי</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${LMS_SINGLE_COURSE_TIERS.map(
-                  (tier) => `
+    if (isEditingPriceList) {
+      priceListContent.innerHTML = `
+        <div class="price-tables-grid">
+          <div class="price-table-card">
+            <h4>השכרת LMS - לומדה אחת במערכת (עריכה)</h4>
+            <div class="price-table-scroll">
+              <table>
+                <thead>
                   <tr>
-                    <td>${tier.maxUsers}</td>
-                    <td class="price-val">${formatCurrency(tier.price)}</td>
+                    <th>עד עובדים</th>
+                    <th>מחיר שנתי (₪)</th>
                   </tr>
-                `
-                ).join("")}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  ${LMS_SINGLE_COURSE_TIERS.map(
+                    (tier, idx) => `
+                    <tr>
+                      <td><input type="number" class="price-edit-input" data-single-tier-users="${idx}" value="${tier.maxUsers}" /></td>
+                      <td><input type="number" class="price-edit-input" data-single-tier-price="${idx}" value="${tier.price}" /></td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="price-table-card">
+            <h4>השכרת LMS - חבילת 3 לומדות (עריכה)</h4>
+            <div class="price-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>עד עובדים</th>
+                    <th>מחיר שנתי (₪)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${LMS_THREE_COURSE_PACKAGE_TIERS.map(
+                    (tier, idx) => `
+                    <tr>
+                      <td><input type="number" class="price-edit-input" data-triple-tier-users="${idx}" value="${tier.maxUsers}" /></td>
+                      <td><input type="number" class="price-edit-input" data-triple-tier-price="${idx}" value="${tier.price}" /></td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
         
-        <div class="price-table-card">
-          <h4>השכרת LMS - חבילת 3 לומדות מדף</h4>
-          <div class="price-table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>עד עובדים</th>
-                  <th>מחיר שנתי</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${LMS_THREE_COURSE_PACKAGE_TIERS.map(
-                  (tier) => `
-                  <tr>
-                    <td>${tier.maxUsers}</td>
-                    <td class="price-val">${formatCurrency(tier.price)}</td>
-                  </tr>
-                `
-                ).join("")}
-              </tbody>
-            </table>
+        <div class="price-extras-grid">
+          <div class="price-extra-card">
+            <h4>לומדות נוספות מעבר לחבילה (LMS)</h4>
+            <ul>
+              <li>עד 500 עובדים: <input type="number" class="price-edit-input inline" data-extra-lms="500" value="${LMS_ADDITIONAL_COURSE_PRICES[500]}" /> ₪ / שנה</li>
+              <li>עד 700 עובדים: <input type="number" class="price-edit-input inline" data-extra-lms="700" value="${LMS_ADDITIONAL_COURSE_PRICES[700]}" /> ₪ / שנה</li>
+              <li>עד 850 עובדים: <input type="number" class="price-edit-input inline" data-extra-lms="850" value="${LMS_ADDITIONAL_COURSE_PRICES[850]}" /> ₪ / שנה</li>
+              <li>מעל 850 עובדים: <input type="number" class="price-edit-input inline" data-extra-lms="default" value="${LMS_ADDITIONAL_COURSE_PRICES.default}" /> ₪ / שנה</li>
+            </ul>
+          </div>
+          
+          <div class="price-extra-card">
+            <h4>רכישת לומדות מדף (ללא LMS)</h4>
+            <ul>
+              <li>לומדה אחת: <input type="number" class="price-edit-input inline" data-purchase-qty="1" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[1]}" /> ₪</li>
+              <li>חבילת 2 לומדות: <input type="number" class="price-edit-input inline" data-purchase-qty="2" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[2]}" /> ₪</li>
+              <li>חבילת 3 לומדות: <input type="number" class="price-edit-input inline" data-purchase-qty="3" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[3]}" /> ₪</li>
+              <li>כל לומדה נוספת מעבר ל-3: <input type="number" class="price-edit-input inline" data-other-price="purchaseAdditionalCourse" value="${OTHER_PRICES.purchaseAdditionalCourse}" /> ₪</li>
+            </ul>
+          </div>
+          
+          <div class="price-extra-card">
+            <h4>תוספות ושירותים נלווים</h4>
+            <ul>
+              <li>
+                <strong>קריינות עברית (AI) ללומדה בודדת</strong>:<br/>
+                רכישה: <input type="number" class="price-edit-input inline small" data-other-price="voiceoverHebrewPurchase" value="${OTHER_PRICES.voiceoverHebrewPurchase}" /> ₪ |
+                LMS: <input type="number" class="price-edit-input inline small" data-other-price="voiceoverHebrewLms" value="${OTHER_PRICES.voiceoverHebrewLms}" /> ₪
+              </li>
+              <li>
+                <strong>קריינות אנגלית (AI) ללומדה</strong>:<br/>
+                <input type="number" class="price-edit-input inline" data-other-price="voiceoverEnglish" value="${OTHER_PRICES.voiceoverEnglish}" /> ₪
+              </li>
+              <li>
+                <strong>תרגום לשפה נוספת ללומדה</strong>:<br/>
+                עם LMS: <input type="number" class="price-edit-input inline small" data-other-price="translationLms" value="${OTHER_PRICES.translationLms}" /> ₪ |
+                ללא LMS: <input type="number" class="price-edit-input inline small" data-other-price="translationPurchase" value="${OTHER_PRICES.translationPurchase}" /> ₪
+              </li>
+            </ul>
           </div>
         </div>
-      </div>
-      
-      <div class="price-extras-grid">
-        <div class="price-extra-card">
-          <h4>לומדות נוספות מעבר לחבילה (LMS)</h4>
-          <ul>
-            <li>עד 500 עובדים: <strong class="price-highlight">1,200 ₪ / שנה</strong></li>
-            <li>עד 700 עובדים: <strong class="price-highlight">1,900 ₪ / שנה</strong></li>
-            <li>עד 850 עובדים: <strong class="price-highlight">2,200 ₪ / שנה</strong></li>
-            <li>מעל 850 עובדים: <strong class="price-highlight">2,900 ₪ / שנה</strong></li>
-          </ul>
+      `;
+    } else {
+      priceListContent.innerHTML = `
+        <div class="price-tables-grid">
+          <div class="price-table-card">
+            <h4>השכרת LMS - לומדה אחת במערכת</h4>
+            <div class="price-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>עד עובדים</th>
+                    <th>מחיר שנתי</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${LMS_SINGLE_COURSE_TIERS.map(
+                    (tier) => `
+                    <tr>
+                      <td>${tier.maxUsers}</td>
+                      <td class="price-val">${formatCurrency(tier.price)}</td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="price-table-card">
+            <h4>השכרת LMS - חבילת 3 לומדות מדף</h4>
+            <div class="price-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>עד עובדים</th>
+                    <th>מחיר שנתי</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${LMS_THREE_COURSE_PACKAGE_TIERS.map(
+                    (tier) => `
+                    <tr>
+                      <td>${tier.maxUsers}</td>
+                      <td class="price-val">${formatCurrency(tier.price)}</td>
+                    </tr>
+                  `
+                  ).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
         
-        <div class="price-extra-card">
-          <h4>רכישת לומדות מדף (ללא LMS)</h4>
-          <ul>
-            <li>לומדה אחת: <strong class="price-highlight">4,900 ₪</strong></li>
-            <li>חבילת 2 לומדות: <strong class="price-highlight">7,500 ₪</strong></li>
-            <li>חבילת 3 לומדות: <strong class="price-highlight">8,900 ₪</strong></li>
-            <li>כל לומדה נוספת מעבר ל-3: <strong class="price-highlight">2,500 ₪</strong></li>
-          </ul>
+        <div class="price-extras-grid">
+          <div class="price-extra-card">
+            <h4>לומדות נוספות מעבר לחבילה (LMS)</h4>
+            <ul>
+              <li>עד 500 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[500])} / שנה</strong></li>
+              <li>עד 700 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[700])} / שנה</strong></li>
+              <li>עד 850 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[850])} / שנה</strong></li>
+              <li>מעל 850 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES.default)} / שנה</strong></li>
+            </ul>
+          </div>
+          
+          <div class="price-extra-card">
+            <h4>רכישת לומדות מדף (ללא LMS)</h4>
+            <ul>
+              <li>לומדה אחת: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[1])}</strong></li>
+              <li>חבילת 2 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[2])}</strong></li>
+              <li>חבילת 3 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[3])}</strong></li>
+              <li>כל לומדה נוספת מעבר ל-3: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.purchaseAdditionalCourse)}</strong></li>
+            </ul>
+          </div>
+          
+          <div class="price-extra-card">
+            <h4>תוספות ושירותים נלווים</h4>
+            <ul>
+              <li><strong>קריינות עברית (AI)</strong>: ${formatCurrency(OTHER_PRICES.voiceoverHebrewPurchase)} (רכישה) / ${formatCurrency(OTHER_PRICES.voiceoverHebrewLms)} (השכרה) ללומדה בודדת. 2 לומדות ומעלה - <strong class="price-highlight-green">כלול במחיר!</strong></li>
+              <li><strong>קריינות אנגלית (AI)</strong>: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.voiceoverEnglish)}</strong> ללומדה.</li>
+              <li><strong>תרגום לשפה נוספת</strong> (אנגלית, ערבית, רוסית): ${formatCurrency(OTHER_PRICES.translationLms)} ללומדה (עם LMS) / ${formatCurrency(OTHER_PRICES.translationPurchase)} ללומדה (ללא LMS).</li>
+            </ul>
+          </div>
         </div>
-        
-        <div class="price-extra-card">
-          <h4>תוספות ושירותים נלווים</h4>
-          <ul>
-            <li><strong>קריינות עברית (AI)</strong>: 350 ₪ (רכישה) / 450 ₪ (השכרה) ללומדה בודדת. 2 לומדות ומעלה - <strong class="price-highlight-green">כלול במחיר!</strong></li>
-            <li><strong>קריינות אנגלית (AI)</strong>: <strong class="price-highlight">950 ₪</strong> ללומדה.</li>
-            <li><strong>תרגום לשפה נוספת</strong> (אנגלית, ערבית, רוסית): 750 ₪ ללומדה (עם LMS) / 950 ₪ ללומדה (ללא LMS).</li>
-          </ul>
-        </div>
-      </div>
-    `;
+      `;
+    }
   }
 
   function renderTemplateSettings() {
@@ -1303,8 +1504,18 @@
   }
 
   function saveTemplateSettings() {
-    storageSet(TEMPLATE_SETTINGS_KEY, JSON.stringify(TEMPLATE_DEFINITIONS));
-    saveTemplateSettingsToSupabase(TEMPLATE_DEFINITIONS);
+    const settingsPayload = {
+      ...TEMPLATE_DEFINITIONS,
+      priceList: {
+        LMS_SINGLE_COURSE_TIERS,
+        LMS_THREE_COURSE_PACKAGE_TIERS,
+        SHELF_COURSE_GROUP_A_PACKAGE_PRICES,
+        LMS_ADDITIONAL_COURSE_PRICES,
+        OTHER_PRICES
+      }
+    };
+    storageSet(TEMPLATE_SETTINGS_KEY, JSON.stringify(settingsPayload));
+    saveTemplateSettingsToSupabase(settingsPayload);
   }
 
   function applyTemplateSettings(settings) {
@@ -1324,7 +1535,7 @@
       };
     });
     Object.entries(settings || {}).forEach(([id, saved]) => {
-      if (TEMPLATE_DEFINITIONS[id]) return;
+      if (TEMPLATE_DEFINITIONS[id] || id === "priceList") return;
       TEMPLATE_DEFINITIONS[id] = {
         label: saved.label || "פורמט",
         description: saved.description || "",
@@ -1332,6 +1543,15 @@
         sectionDefinitions: Array.isArray(saved.sectionDefinitions) ? saved.sectionDefinitions : [],
       };
     });
+
+    if (settings?.priceList) {
+      const pl = settings.priceList;
+      if (pl.LMS_SINGLE_COURSE_TIERS) LMS_SINGLE_COURSE_TIERS = pl.LMS_SINGLE_COURSE_TIERS;
+      if (pl.LMS_THREE_COURSE_PACKAGE_TIERS) LMS_THREE_COURSE_PACKAGE_TIERS = pl.LMS_THREE_COURSE_PACKAGE_TIERS;
+      if (pl.SHELF_COURSE_GROUP_A_PACKAGE_PRICES) SHELF_COURSE_GROUP_A_PACKAGE_PRICES = pl.SHELF_COURSE_GROUP_A_PACKAGE_PRICES;
+      if (pl.LMS_ADDITIONAL_COURSE_PRICES) LMS_ADDITIONAL_COURSE_PRICES = pl.LMS_ADDITIONAL_COURSE_PRICES;
+      if (pl.OTHER_PRICES) OTHER_PRICES = pl.OTHER_PRICES;
+    }
   }
 
   async function resetTemplateSettings() {
@@ -2044,6 +2264,10 @@
 
   function buildSharedQuoteLink(id) {
     return `${getShareBaseUrl()}#mode=client&id=${encodeURIComponent(id)}`;
+  }
+
+  function buildSharedQuoteEditLink(id) {
+    return `${getShareBaseUrl()}#mode=edit&id=${encodeURIComponent(id)}`;
   }
 
   function buildShareQuotePayload() {
@@ -2866,9 +3090,30 @@
   }
 
   async function copyTrackingLink(id, button) {
-    const copied = await copyText(buildSharedQuoteLink(id));
+    const choice = await showAppDialog({
+      title: "העתקת קישור להצעה",
+      message: "איזה קישור ברצונך להעתיק?",
+      confirmText: "קישור לחתימת לקוח",
+      confirmResult: "client",
+      extraText: "קישור לעריכת הצעה",
+      extraResult: "edit",
+      showCancel: true,
+      cancelText: "ביטול",
+      cancelResult: null
+    });
+
+    if (!choice) return;
+
+    let link = "";
+    if (choice === "client") {
+      link = buildSharedQuoteLink(id);
+    } else if (choice === "edit") {
+      link = buildSharedQuoteEditLink(id);
+    }
+
+    const copied = await copyText(link);
     const originalText = button.textContent;
-    button.textContent = copied ? "הועתק" : "לא הועתק";
+    button.textContent = copied ? "הועתק!" : "לא הועתק";
     window.setTimeout(() => {
       button.textContent = originalText;
     }, 1600);
@@ -3815,7 +4060,7 @@
     if (q.includeEnglishVoiceover) {
       rows.push({
         title: pricingOptionLabel(q, "includeEnglishVoiceover", "קריינות בשפה נוספת"),
-        price: 950,
+        price: OTHER_PRICES.voiceoverEnglish,
         notes: "קריינות בשפה נוספת באמצעות AI. המחיר מתייחס לשפה אחת.",
         included: false,
       });
@@ -3896,7 +4141,7 @@
     for (let index = 3; index < courseCount; index += 1) {
       rows.push({
         title: `לומדת מדף נוספת ${index + 1}${courseNameSuffix(q, index)}`,
-        price: 2500,
+        price: OTHER_PRICES.purchaseAdditionalCourse,
         kind: "course",
         notes: "",
         included: false,
@@ -3967,14 +4212,14 @@
   }
 
   function lmsAdditionalCoursePrice(users) {
-    if (users <= 500) return 1200;
-    if (users <= 700) return 1900;
-    if (users <= 850) return 2200;
-    return 2900;
+    if (users <= 500) return LMS_ADDITIONAL_COURSE_PRICES[500];
+    if (users <= 700) return LMS_ADDITIONAL_COURSE_PRICES[700];
+    if (users <= 850) return LMS_ADDITIONAL_COURSE_PRICES[850];
+    return LMS_ADDITIONAL_COURSE_PRICES.default;
   }
 
   function translationPrice(q) {
-    const pricePerCourse = q.includeLms ? 750 : 950;
+    const pricePerCourse = q.includeLms ? OTHER_PRICES.translationLms : OTHER_PRICES.translationPurchase;
     return pricePerCourse * Math.max(1, q.courseCount);
   }
 
