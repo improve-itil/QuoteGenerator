@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>מחולל הצעות מחיר | Improve-IT</title>
-    <link rel="stylesheet" href="styles.css?v=20260602-generator-auth" />
+    <link rel="stylesheet" href="styles.css?v=20260604-signature-fix-v4" />
   </head>
   <body class="auth-required">
     <!-- מסך טעינה -->
@@ -50,6 +50,7 @@
           <button type="button" id="createClientLink">קישור ללקוח / עריכה</button>
           <button type="button" id="showQuoteTracking">מעקב</button>
           <button type="button" id="showSignedArchive">מאגר חתומות</button>
+          <button type="button" id="showPriceList">מחירון</button>
           <button type="button" id="showSettings">הגדרות</button>
           <button type="button" id="logoutGenerator">התנתק</button>
           <button type="button" class="primary" id="printQuote">הדפסה / PDF</button>
@@ -99,13 +100,29 @@
           <p>המאגר נשמר בדפדפן המקומי. בחיבור עתידי לשרת, אזור זה יתחלף במאגר החברה המרכזי.</p>
         </div>
         <label class="signed-archive-search">
-          חיפוש במאגר
+          חיפוש במעגר
           <input id="signedArchiveSearch" type="search" placeholder="חיפוש לפי חברה, מספר הצעה, חותם או תאריך" />
         </label>
         <div class="section-actions">
           <button type="button" class="compact" id="closeSignedArchive">סגירה</button>
         </div>
         <div id="signedArchiveList" class="signed-archive-list"></div>
+      </section>
+
+      <section class="share-panel price-list-panel" id="priceListPanel" hidden>
+        <div class="price-list-panel-head">
+          <div>
+            <strong>מחירון Improve-IT</strong>
+            <p>פירוט תעריפים ומסלולים למערכות LMS, לומדות מדף ותוספות.</p>
+          </div>
+          <div class="section-actions">
+            <button type="button" class="compact" id="editPriceListBtn">עריכה</button>
+            <button type="button" class="compact primary" id="savePriceListBtn" hidden>שמירה</button>
+            <button type="button" class="compact" id="cancelPriceListBtn" hidden>ביטול</button>
+            <button type="button" class="compact" id="closePriceList">סגירה</button>
+          </div>
+        </div>
+        <div class="price-list-content" id="priceListContent"></div>
       </section>
 
       <section class="settings-panel" id="settingsPanel" hidden>

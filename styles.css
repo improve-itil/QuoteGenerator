@@ -623,6 +623,7 @@ button.danger:hover {
   z-index: 5;
   min-height: 48px;
   box-shadow: 0 10px 24px rgba(18, 138, 160, 0.22);
+  margin-top: 12px;
 }
 
 .client-mode .workspace {
@@ -633,8 +634,13 @@ button.danger:hover {
   display: none;
 }
 
+.client-mode .client-signature-section {
+  margin-bottom: 12px;
+}
+
 .client-mode .editor-panel {
   background: #ffffff;
+  padding-bottom: 16px;
 }
 
 .workspace {
@@ -1758,6 +1764,7 @@ select:focus {
     order: 0;
     border-left: 0;
     border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
   }
 
   .client-mode .preview-panel {
@@ -1767,7 +1774,7 @@ select:focus {
   }
 
   .client-mode .client-signature-section {
-    margin-bottom: 0;
+    margin-bottom: 12px;
     padding-bottom: 0;
     border-bottom: 0;
   }
@@ -1794,8 +1801,11 @@ select:focus {
   }
 
   .client-mode .client-signature-submit {
-    bottom: max(10px, env(safe-area-inset-bottom));
+    position: static;
+    bottom: auto;
     min-height: 52px;
+    margin-top: 8px;
+    box-shadow: none;
   }
 
   .proposal-preview {
@@ -2101,5 +2111,168 @@ select:focus {
 @media print {
   .loading-screen {
     display: none !important;
+  }
+}
+
+/* Price List Panel Styling */
+.price-list-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--line);
+  animation: slideDown 0.3s ease-out;
+}
+
+.price-list-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+
+.price-list-panel-head strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.price-list-panel-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.price-list-content {
+  display: grid;
+  gap: 20px;
+}
+
+/* Tables layout */
+.price-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.price-table-card {
+  background: #fdfefe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.price-table-card h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--teal);
+  border-right: 3px solid var(--teal);
+  padding-right: 8px;
+}
+
+.price-table-scroll {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.price-table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: right;
+}
+
+.price-table-card th, 
+.price-table-card td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f4f7;
+}
+
+.price-table-card th {
+  background: #f4f7f8;
+  font-weight: 700;
+  color: var(--ink);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.price-table-card tr:last-child td {
+  border-bottom: 0;
+}
+
+.price-table-card tr:hover td {
+  background: #f9fbfc;
+}
+
+.price-val {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Extras Cards layout */
+.price-extras-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.price-extra-card {
+  background: #fdfefe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.price-extra-card h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--orange);
+  border-right: 3px solid var(--orange);
+  padding-right: 8px;
+}
+
+.price-extra-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.price-extra-card li {
+  padding: 6px 0;
+  border-bottom: 1px dashed #f0f4f7;
+  font-size: 12px;
+}
+
+.price-extra-card li:last-child {
+  border-bottom: 0;
+}
+
+.price-highlight {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.price-highlight-green {
+  color: #128a5d;
+  font-weight: 700;
+  background: #f0fff8;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Slide Down Keyframe animation */
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

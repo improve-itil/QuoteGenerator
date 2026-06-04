@@ -279,6 +279,8 @@
   const quoteTrackingList = document.getElementById("quoteTrackingList");
   const quoteTrackingSearchField = document.getElementById("quoteTrackingSearch");
   const settingsPanel = document.getElementById("settingsPanel");
+  const priceListPanel = document.getElementById("priceListPanel");
+  const priceListContent = document.getElementById("priceListContent");
   const salespersonSelectField = document.getElementById("salespersonSelect");
   const salespersonNameField = document.getElementById("salespersonName");
   const salespersonTitleField = document.getElementById("salespersonTitle");
@@ -471,9 +473,13 @@
         quoteTrackingPanel.hidden = true;
       });
       document.getElementById("showSettings").addEventListener("click", showSettings);
+      document.getElementById("showPriceList").addEventListener("click", showPriceList);
       document.getElementById("logoutGenerator").addEventListener("click", logoutGenerator);
       document.getElementById("closeSettings").addEventListener("click", () => {
         settingsPanel.hidden = true;
+      });
+      document.getElementById("closePriceList").addEventListener("click", () => {
+        priceListPanel.hidden = true;
       });
       document.getElementById("resetTemplateSettings").addEventListener("click", resetTemplateSettings);
       salespersonSelectField.addEventListener("change", handleSalespersonSelectionChange);
@@ -744,6 +750,7 @@
     sharePanel.hidden = true;
     signedArchivePanel.hidden = true;
     quoteTrackingPanel.hidden = true;
+    priceListPanel.hidden = true;
   }
 
   function handleTopbarActionClick(event) {
@@ -960,6 +967,100 @@
     applySalespersonSettingsToQuote();
     populateForm();
     renderPreview();
+  }
+
+  function showPriceList() {
+    renderPriceList();
+    priceListPanel.hidden = false;
+    sharePanel.hidden = true;
+    signedArchivePanel.hidden = true;
+    quoteTrackingPanel.hidden = true;
+    settingsPanel.hidden = true;
+  }
+
+  function renderPriceList() {
+    priceListContent.innerHTML = `
+      <div class="price-tables-grid">
+        <div class="price-table-card">
+          <h4>השכרת LMS - לומדה אחת במערכת</h4>
+          <div class="price-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>עד עובדים</th>
+                  <th>מחיר שנתי</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${LMS_SINGLE_COURSE_TIERS.map(
+                  (tier) => `
+                  <tr>
+                    <td>${tier.maxUsers}</td>
+                    <td class="price-val">${formatCurrency(tier.price)}</td>
+                  </tr>
+                `
+                ).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="price-table-card">
+          <h4>השכרת LMS - חבילת 3 לומדות מדף</h4>
+          <div class="price-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>עד עובדים</th>
+                  <th>מחיר שנתי</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${LMS_THREE_COURSE_PACKAGE_TIERS.map(
+                  (tier) => `
+                  <tr>
+                    <td>${tier.maxUsers}</td>
+                    <td class="price-val">${formatCurrency(tier.price)}</td>
+                  </tr>
+                `
+                ).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div class="price-extras-grid">
+        <div class="price-extra-card">
+          <h4>לומדות נוספות מעבר לחבילה (LMS)</h4>
+          <ul>
+            <li>עד 500 עובדים: <strong class="price-highlight">1,200 ₪ / שנה</strong></li>
+            <li>עד 700 עובדים: <strong class="price-highlight">1,900 ₪ / שנה</strong></li>
+            <li>עד 850 עובדים: <strong class="price-highlight">2,200 ₪ / שנה</strong></li>
+            <li>מעל 850 עובדים: <strong class="price-highlight">2,900 ₪ / שנה</strong></li>
+          </ul>
+        </div>
+        
+        <div class="price-extra-card">
+          <h4>רכישת לומדות מדף (ללא LMS)</h4>
+          <ul>
+            <li>לומדה אחת: <strong class="price-highlight">4,900 ₪</strong></li>
+            <li>חבילת 2 לומדות: <strong class="price-highlight">7,500 ₪</strong></li>
+            <li>חבילת 3 לומדות: <strong class="price-highlight">8,900 ₪</strong></li>
+            <li>כל לומדה נוספת מעבר ל-3: <strong class="price-highlight">2,500 ₪</strong></li>
+          </ul>
+        </div>
+        
+        <div class="price-extra-card">
+          <h4>תוספות ושירותים נלווים</h4>
+          <ul>
+            <li><strong>קריינות עברית (AI)</strong>: 350 ₪ (רכישה) / 450 ₪ (השכרה) ללומדה בודדת. 2 לומדות ומעלה - <strong class="price-highlight-green">כלול במחיר!</strong></li>
+            <li><strong>קריינות אנגלית (AI)</strong>: <strong class="price-highlight">950 ₪</strong> ללומדה.</li>
+            <li><strong>תרגום לשפה נוספת</strong> (אנגלית, ערבית, רוסית): 750 ₪ ללומדה (עם LMS) / 950 ₪ ללומדה (ללא LMS).</li>
+          </ul>
+        </div>
+      </div>
+    `;
   }
 
   function renderTemplateSettings() {
@@ -1917,6 +2018,7 @@
       signedArchivePanel.hidden = true;
       quoteTrackingPanel.hidden = true;
       settingsPanel.hidden = true;
+      priceListPanel.hidden = true;
       
       const copied = await copyText(clientLink, clientLinkOutput);
       setCopyFeedback(copied ? "הועתק!" : "העתקת קישור");
@@ -2201,6 +2303,7 @@
     sharePanel.hidden = true;
     quoteTrackingPanel.hidden = true;
     settingsPanel.hidden = true;
+    priceListPanel.hidden = true;
   }
 
   function renderSignedArchive() {
@@ -2688,6 +2791,7 @@
     sharePanel.hidden = true;
     signedArchivePanel.hidden = true;
     settingsPanel.hidden = true;
+    priceListPanel.hidden = true;
   }
 
   function renderQuoteTracking() {
