@@ -2667,8 +2667,8 @@
     appDialogCancel.hidden = !showCancel;
     appDialogExtra.textContent = extraText;
     appDialogExtra.hidden = !extraText;
-    appDialogExtra.classList.toggle("primary", Boolean(extraText));
-    appDialogConfirm.classList.toggle("primary", !extraText);
+    appDialogExtra.classList.remove("primary");
+    appDialogConfirm.classList.add("primary");
     appDialog.hidden = false;
     appDialogConfirm.focus();
 
