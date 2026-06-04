@@ -542,6 +542,7 @@
     if (sharedQuoteId) {
       const sharedQuote = await readSharedQuote(sharedQuoteId);
       if (sharedQuote) {
+        setActiveSharedQuoteId(sharedQuoteId);
         if (isClientMode) recordSharedQuoteOpen(sharedQuoteId);
         return sharedQuote;
       }
@@ -2472,14 +2473,18 @@
     try {
       const archive = readSignedArchive();
       const signedRecord = {
-        id: `${quote.quoteNumber || "quote"}-${Date.now()}`,
+        id: buildSignedQuoteRecordId(),
+        sharedQuoteId: activeSharedQuoteId || getHashParam("id") || "",
         signedAt: new Date().toISOString(),
         quote: normalizeQuote(quote),
       };
-      archive.unshift(signedRecord);
-      storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
-      await saveSignedQuoteToSupabase(signedRecord);
-      await saveSignedQuoteToLocalServer(signedRecord);
+      writeSignedArchive([signedRecord, ...archive]);
+      const savedToSupabase = await saveSignedQuoteToSupabase(signedRecord);
+      const savedToSharedQuote = await saveSignedQuoteToSharedQuote(signedRecord);
+      const savedToLocalServer = await saveSignedQuoteToLocalServer(signedRecord);
+      if (!savedToSupabase && !savedToSharedQuote && !savedToLocalServer) {
+        throw new Error("Signed quote was not saved to a shared archive");
+      }
       renderPreview();
       await showSignedQuoteSentDialog(signedRecord.quote);
     } catch (error) {
@@ -2489,6 +2494,13 @@
       sendButton.disabled = false;
       sendButton.textContent = "מאשר/ת את ההצעה ושולח/ת חתימה";
     }
+  }
+
+  function buildSignedQuoteRecordId() {
+    const sharedQuoteId = activeSharedQuoteId || getHashParam("id");
+    if (sharedQuoteId) return `${sharedQuoteId}-signed-${Date.now()}`;
+
+    return `${quote.quoteNumber || "quote"}-${Date.now()}`;
   }
 
   async function showSignedQuoteSentDialog(signedQuote) {
@@ -2531,6 +2543,7 @@
 
   async function showSignedArchive() {
     await syncSignedArchiveFromSupabase();
+    await syncSignedArchiveFromSharedQuotes();
     await syncSignedArchiveFromLocalServer();
     renderSignedArchive();
     signedArchivePanel.hidden = false;
@@ -2647,6 +2660,7 @@
     archive.splice(index, 1);
     storageSet(SIGNED_ARCHIVE_KEY, JSON.stringify(archive));
     await deleteSignedQuoteFromSupabase(record.id);
+    await deleteSignedQuoteFromSharedQuote(record);
     await deleteSignedQuoteFromLocalServer(record.id);
     renderSignedArchive();
   }
@@ -2765,6 +2779,49 @@
     }
   }
 
+  async function syncSignedArchiveFromSharedQuotes() {
+    if (!supabaseClient) return;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("shared_quotes")
+        .select("id,created_at,quote")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const archive = (data || [])
+        .map(extractSignedArchiveRecordFromSharedQuote)
+        .filter(Boolean);
+      writeSignedArchive(mergeSignedArchiveRecords(archive, readSignedArchive()));
+    } catch (error) {
+      console.warn("Could not load signed quotes from shared links", error);
+    }
+  }
+
+  function extractSignedArchiveRecordFromSharedQuote(record) {
+    const sharedQuote = record?.quote;
+    if (!sharedQuote || typeof sharedQuote !== "object") return null;
+
+    const embeddedRecord = sharedQuote.signedArchiveRecord || sharedQuote.signedRecord;
+    if (embeddedRecord?.quote) {
+      return {
+        id: embeddedRecord.id || `${record.id}-signed`,
+        sharedQuoteId: embeddedRecord.sharedQuoteId || record.id,
+        signedAt: embeddedRecord.signedAt || embeddedRecord.signed_at || record.created_at || "",
+        quote: embeddedRecord.quote,
+      };
+    }
+
+    if (!sharedQuote.clientSignatureData) return null;
+
+    return {
+      id: `${record.id}-signed`,
+      sharedQuoteId: record.id,
+      signedAt: sharedQuote.clientSignatureDate || record.created_at || "",
+      quote: sharedQuote,
+    };
+  }
+
   async function syncSignedArchiveFromLocalServer() {
     if (!shouldUseLocalServer()) return;
 
@@ -2779,7 +2836,7 @@
   }
 
   async function saveSignedQuoteToSupabase(record) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) return false;
 
     try {
       const { error } = await supabaseClient.from("signed_quotes").upsert({
@@ -2788,13 +2845,15 @@
         quote: record.quote,
       });
       if (error) throw error;
+      return true;
     } catch (error) {
       console.warn("Could not save signed quote to Supabase", error);
+      return false;
     }
   }
 
   async function saveSignedQuoteToLocalServer(record) {
-    if (!shouldUseLocalServer()) return;
+    if (!shouldUseLocalServer()) return false;
 
     try {
       const response = await fetch(LOCAL_SIGNED_ARCHIVE_URL, {
@@ -2803,8 +2862,58 @@
         body: JSON.stringify(record),
       });
       if (!response.ok) throw new Error(`Local signed archive save failed: ${response.status}`);
+      return true;
     } catch (error) {
       console.warn("Could not save signed quote to local server", error);
+      return false;
+    }
+  }
+
+  async function saveSignedQuoteToSharedQuote(record) {
+    const sharedQuoteId = record.sharedQuoteId || activeSharedQuoteId || getHashParam("id");
+    if (!sharedQuoteId) return false;
+
+    const sharedQuote = await readSharedQuote(sharedQuoteId);
+    if (!sharedQuote) return false;
+
+    const signedQuote = normalizeQuote(record.quote);
+    const signedPayload = {
+      ...sharedQuote,
+      ...signedQuote,
+      signedArchiveRecord: {
+        id: record.id,
+        sharedQuoteId,
+        signedAt: record.signedAt,
+        quote: signedQuote,
+      },
+    };
+
+    const savedToSupabase = await updateSharedQuotePayloadInSupabase(sharedQuoteId, signedPayload);
+    const savedToLocalServer = await saveSharedQuoteToLocalServer(sharedQuoteId, signedPayload);
+    return savedToSupabase || savedToLocalServer;
+  }
+
+  async function updateSharedQuotePayloadInSupabase(id, payload) {
+    if (!supabaseClient || !id) return false;
+
+    try {
+      const { data } = await supabaseClient
+        .from("shared_quotes")
+        .select("quote")
+        .eq("id", id)
+        .maybeSingle();
+
+      const mergedPayload = { ...payload };
+      if (data?.quote?.openEvents) {
+        mergedPayload.openEvents = data.quote.openEvents;
+      }
+
+      const { error } = await supabaseClient.from("shared_quotes").update({ quote: mergedPayload }).eq("id", id);
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.warn("Could not update shared quote with signed record", error);
+      return false;
     }
   }
 
@@ -2829,6 +2938,27 @@
     } catch (error) {
       console.warn("Could not delete signed quote from local server", error);
     }
+  }
+
+  async function deleteSignedQuoteFromSharedQuote(record) {
+    const sharedQuoteId = record?.sharedQuoteId;
+    if (!sharedQuoteId) return false;
+
+    const sharedQuote = await readSharedQuote(sharedQuoteId);
+    if (!sharedQuote?.signedArchiveRecord && !sharedQuote?.signedRecord) return false;
+
+    const cleanedQuote = { ...sharedQuote };
+    delete cleanedQuote.signedArchiveRecord;
+    delete cleanedQuote.signedRecord;
+    delete cleanedQuote.clientSignatureData;
+    delete cleanedQuote.clientSignatureDate;
+    delete cleanedQuote.clientSignerName;
+    delete cleanedQuote.clientSignerTitle;
+    delete cleanedQuote.clientSignerCompany;
+
+    const savedToSupabase = await updateSharedQuotePayloadInSupabase(sharedQuoteId, cleanedQuote);
+    const savedToLocalServer = await saveSharedQuoteToLocalServer(sharedQuoteId, cleanedQuote);
+    return savedToSupabase || savedToLocalServer;
   }
 
   async function saveSharedQuote(payload) {
