@@ -27,56 +27,56 @@
     ],
   };
   const PRICE_LIST_STORAGE_KEY = "improve-it-price-list";
+  const PRICE_LIST_VERSION = 2;
   let isEditingPriceList = false;
 
   let LMS_SINGLE_COURSE_TIERS = [
-    { maxUsers: 60, price: 2940 },
-    { maxUsers: 90, price: 3600 },
-    { maxUsers: 120, price: 3840 },
-    { maxUsers: 150, price: 4050 },
-    { maxUsers: 180, price: 4900 },
-    { maxUsers: 210, price: 4620 },
-    { maxUsers: 250, price: 4900 },
-    { maxUsers: 300, price: 5250 },
-    { maxUsers: 350, price: 5500 },
-    { maxUsers: 400, price: 5900 },
-    { maxUsers: 450, price: 6200 },
-    { maxUsers: 500, price: 6500 },
-    { maxUsers: 550, price: 6900 },
-    { maxUsers: 600, price: 7100 },
-    { maxUsers: 650, price: 7300 },
-    { maxUsers: 700, price: 7500 },
-    { maxUsers: 750, price: 7800 },
-    { maxUsers: 800, price: 8100 },
-    { maxUsers: 850, price: 8300 },
-    { maxUsers: 900, price: 8500 },
-    { maxUsers: 950, price: 8800 },
-    { maxUsers: 1000, price: 9100 },
+    { minUsers: 1, maxUsers: 60, price: 2940, perUser: 49 },
+    { minUsers: 61, maxUsers: 90, price: 3600, perUser: 40 },
+    { minUsers: 91, maxUsers: 120, price: 3840, perUser: 32 },
+    { minUsers: 121, maxUsers: 150, price: 4050, perUser: 27 },
+    { minUsers: 151, maxUsers: 180, price: 4500, perUser: 25 },
+    { minUsers: 181, maxUsers: 210, price: 4620, perUser: 22 },
+    { minUsers: 211, maxUsers: 250, price: 4875, perUser: 19.5 },
+    { minUsers: 251, maxUsers: 300, price: 5250, perUser: 17.5 },
+    { minUsers: 301, maxUsers: 350, price: 5775, perUser: 16.5 },
+    { minUsers: 351, maxUsers: 400, price: 6600, perUser: 16.5 },
+    { minUsers: 401, maxUsers: 450, price: 6975, perUser: 15.5 },
+    { minUsers: 451, maxUsers: 500, price: 7500, perUser: 15 },
+    { minUsers: 501, maxUsers: 550, price: 8525, perUser: 15.5 },
+    { minUsers: 551, maxUsers: 600, price: 8850, perUser: 14.75 },
+    { minUsers: 601, maxUsers: 650, price: 9100, perUser: 14 },
+    { minUsers: 651, maxUsers: 700, price: 9450, perUser: 13.5 },
+    { minUsers: 701, maxUsers: 750, price: 9750, perUser: 13 },
+    { minUsers: 751, maxUsers: 800, price: 9950, perUser: 12.4 },
+    { minUsers: 801, maxUsers: 850, price: 10200, perUser: 12 },
+    { minUsers: 851, maxUsers: 900, price: 10800, perUser: 12 },
+    { minUsers: 901, maxUsers: 950, price: 10925, perUser: 11.5 },
+    { minUsers: 951, maxUsers: 1000, price: 11500, perUser: 11.5 },
   ];
   let LMS_THREE_COURSE_PACKAGE_TIERS = [
-    { maxUsers: 180, price: 4900 },
-    { maxUsers: 210, price: 5500 },
-    { maxUsers: 250, price: 5900 },
-    { maxUsers: 300, price: 6300 },
-    { maxUsers: 350, price: 6400 },
-    { maxUsers: 400, price: 6600 },
-    { maxUsers: 450, price: 6900 },
-    { maxUsers: 500, price: 7200 },
-    { maxUsers: 550, price: 7600 },
-    { maxUsers: 600, price: 7900 },
-    { maxUsers: 650, price: 8200 },
-    { maxUsers: 700, price: 8500 },
+    { minUsers: 121, maxUsers: 150, price: 6450 },
+    { minUsers: 151, maxUsers: 180, price: 6900 },
+    { minUsers: 181, maxUsers: 210, price: 7020 },
+    { minUsers: 211, maxUsers: 250, price: 7275 },
+    { minUsers: 251, maxUsers: 300, price: 7650 },
+    { minUsers: 301, maxUsers: 350, price: 8175 },
   ];
   let SHELF_COURSE_GROUP_A_PACKAGE_PRICES = {
     1: 4900,
     2: 7500,
     3: 8900,
   };
+  let SHELF_COURSE_GROUP_B_PACKAGE_PRICES = {
+    1: 5500,
+    2: 8500,
+    3: 10500,
+  };
   let LMS_ADDITIONAL_COURSE_PRICES = {
     500: 1200,
-    700: 1900,
-    850: 2200,
-    default: 2900
+    700: 2500,
+    850: 3000,
+    default: 3500,
   };
   let OTHER_PRICES = {
     translationLms: 750,
@@ -84,7 +84,7 @@
     voiceoverHebrewLms: 450,
     voiceoverHebrewPurchase: 350,
     voiceoverEnglish: 950,
-    purchaseAdditionalCourse: 2500
+    purchaseAdditionalCourse: 2500,
   };
   const memoryStorage = new Map();
   let supabaseClient = null;
@@ -231,6 +231,7 @@
     users: 100,
     courseCount: DEFAULT_COURSE_COUNT,
     courseNames: [],
+    courseGroups: [],
     pricingPlanLabel: "השכרה - מסלול שנתי",
     pricingIntroText: "",
     additionalUserPrice: 60,
@@ -501,7 +502,7 @@
         quoteTrackingPanel.hidden = true;
       });
       document.getElementById("showSettings").addEventListener("click", showSettings);
-      document.getElementById("showPriceList").addEventListener("click", showPriceList);
+      document.getElementById("showPriceList").addEventListener("click", openPriceListPanel);
       document.getElementById("editPriceListBtn").addEventListener("click", startEditingPriceList);
       document.getElementById("savePriceListBtn").addEventListener("click", savePriceListEdits);
       document.getElementById("cancelPriceListBtn").addEventListener("click", cancelPriceListEdits);
@@ -711,7 +712,13 @@
           .split(/\r?\n/)
           .map((line) => line.trim())
           .filter(Boolean);
-    merged.courseCount = Math.max(merged.courseCount, merged.courseNames.length);
+    merged.courseGroups = Array.isArray(merged.courseGroups)
+      ? merged.courseGroups.map(normalizeCourseGroup)
+      : [];
+    merged.courseCount = Math.max(merged.courseCount, merged.courseNames.length, merged.courseGroups.length);
+    merged.courseGroups = Array.from({ length: merged.courseCount }, (_, index) =>
+      normalizeCourseGroup(merged.courseGroups[index])
+    );
     merged.customItems = Array.isArray(merged.customItems)
       ? merged.customItems.map((item) => ({
           title: item.title || "",
@@ -793,11 +800,21 @@
     courseNamesList.innerHTML = count
       ? Array.from({ length: count }, (_, index) => {
           const value = quote.courseNames[index] || "";
+          const group = normalizeCourseGroup(quote.courseGroups[index]);
           return `
-            <label>
-              לומדה ${index + 1}
-              <input data-course-name-index="${index}" type="text" value="${escapeAttr(value)}" />
-            </label>
+            <div class="course-name-row">
+              <label>
+                לומדה ${index + 1}
+                <input data-course-name-index="${index}" type="text" value="${escapeAttr(value)}" />
+              </label>
+              <label>
+                קבוצה
+                <select data-course-group-index="${index}">
+                  <option value="A" ${group === "A" ? "selected" : ""}>קבוצה A</option>
+                  <option value="B" ${group === "B" ? "selected" : ""}>קבוצה B</option>
+                </select>
+              </label>
+            </div>
           `;
         }).join("")
       : `<p class="empty-note">לא הוגדרו לומדות.</p>`;
@@ -1047,7 +1064,7 @@
     renderPreview();
   }
 
-  function showPriceList() {
+  function openPriceListPanel() {
     isEditingPriceList = false;
     togglePriceListEditButtons(false);
     renderPriceList();
@@ -1078,8 +1095,10 @@
       const priceInput = document.querySelector(`[data-single-tier-price="${idx}"]`);
       if (priceInput) {
         singleTiers.push({
+          minUsers: LMS_SINGLE_COURSE_TIERS[Number(idx)]?.minUsers || 1,
           maxUsers: numberOr(input.value, 0),
-          price: numberOr(priceInput.value, 0)
+          price: numberOr(priceInput.value, 0),
+          perUser: LMS_SINGLE_COURSE_TIERS[Number(idx)]?.perUser || 0,
         });
       }
     });
@@ -1094,8 +1113,9 @@
       const priceInput = document.querySelector(`[data-triple-tier-price="${idx}"]`);
       if (priceInput) {
         tripleTiers.push({
+          minUsers: LMS_THREE_COURSE_PACKAGE_TIERS[Number(idx)]?.minUsers || 1,
           maxUsers: numberOr(input.value, 0),
-          price: numberOr(priceInput.value, 0)
+          price: numberOr(priceInput.value, 0),
         });
       }
     });
@@ -1110,9 +1130,11 @@
     });
 
     // 4. Read shelf package prices
-    document.querySelectorAll("[data-purchase-qty]").forEach((input) => {
+    document.querySelectorAll("[data-purchase-group][data-purchase-qty]").forEach((input) => {
+      const group = input.dataset.purchaseGroup;
       const qty = input.dataset.purchaseQty;
-      SHELF_COURSE_GROUP_A_PACKAGE_PRICES[qty] = numberOr(input.value, 0);
+      const prices = group === "B" ? SHELF_COURSE_GROUP_B_PACKAGE_PRICES : SHELF_COURSE_GROUP_A_PACKAGE_PRICES;
+      prices[qty] = numberOr(input.value, 0);
     });
 
     // 5. Read other prices
@@ -1206,12 +1228,22 @@
           </div>
           
           <div class="price-extra-card">
-            <h4>רכישת לומדות מדף (ללא LMS)</h4>
+            <h4>רכישת לומדות מדף - קבוצה A</h4>
             <ul>
-              <li>לומדה אחת: <input type="number" class="price-edit-input inline" data-purchase-qty="1" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[1]}" /> ₪</li>
-              <li>חבילת 2 לומדות: <input type="number" class="price-edit-input inline" data-purchase-qty="2" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[2]}" /> ₪</li>
-              <li>חבילת 3 לומדות: <input type="number" class="price-edit-input inline" data-purchase-qty="3" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[3]}" /> ₪</li>
+              <li>לומדה אחת: <input type="number" class="price-edit-input inline" data-purchase-group="A" data-purchase-qty="1" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[1]}" /> ₪</li>
+              <li>חבילת 2 לומדות: <input type="number" class="price-edit-input inline" data-purchase-group="A" data-purchase-qty="2" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[2]}" /> ₪</li>
+              <li>חבילת 3 לומדות: <input type="number" class="price-edit-input inline" data-purchase-group="A" data-purchase-qty="3" value="${SHELF_COURSE_GROUP_A_PACKAGE_PRICES[3]}" /> ₪</li>
               <li>כל לומדה נוספת מעבר ל-3: <input type="number" class="price-edit-input inline" data-other-price="purchaseAdditionalCourse" value="${OTHER_PRICES.purchaseAdditionalCourse}" /> ₪</li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>רכישת לומדות מדף - קבוצה B</h4>
+            <ul>
+              <li>לומדה אחת: <input type="number" class="price-edit-input inline" data-purchase-group="B" data-purchase-qty="1" value="${SHELF_COURSE_GROUP_B_PACKAGE_PRICES[1]}" /> ₪</li>
+              <li>חבילת 2 לומדות: <input type="number" class="price-edit-input inline" data-purchase-group="B" data-purchase-qty="2" value="${SHELF_COURSE_GROUP_B_PACKAGE_PRICES[2]}" /> ₪</li>
+              <li>חבילת 3 לומדות: <input type="number" class="price-edit-input inline" data-purchase-group="B" data-purchase-qty="3" value="${SHELF_COURSE_GROUP_B_PACKAGE_PRICES[3]}" /> ₪</li>
+              <li>כל לומדה נוספת מעבר ל-3: ${formatCurrency(OTHER_PRICES.purchaseAdditionalCourse)}</li>
             </ul>
           </div>
           
@@ -1245,16 +1277,18 @@
               <table>
                 <thead>
                   <tr>
-                    <th>עד עובדים</th>
+                    <th>מספר עובדים</th>
                     <th>מחיר שנתי</th>
+                    <th>מחיר למשתמש</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${LMS_SINGLE_COURSE_TIERS.map(
                     (tier) => `
                     <tr>
-                      <td>${tier.maxUsers}</td>
+                      <td>${formatUsersTier(tier)}</td>
                       <td class="price-val">${formatCurrency(tier.price)}</td>
+                      <td class="price-val">${formatCurrency(tier.perUser)}</td>
                     </tr>
                   `
                   ).join("")}
@@ -1269,7 +1303,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>עד עובדים</th>
+                    <th>מספר עובדים</th>
                     <th>מחיר שנתי</th>
                   </tr>
                 </thead>
@@ -1277,7 +1311,7 @@
                   ${LMS_THREE_COURSE_PACKAGE_TIERS.map(
                     (tier) => `
                     <tr>
-                      <td>${tier.maxUsers}</td>
+                      <td>${formatUsersTier(tier)}</td>
                       <td class="price-val">${formatCurrency(tier.price)}</td>
                     </tr>
                   `
@@ -1293,18 +1327,31 @@
             <h4>לומדות נוספות מעבר לחבילה (LMS)</h4>
             <ul>
               <li>עד 500 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[500])} / שנה</strong></li>
-              <li>עד 700 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[700])} / שנה</strong></li>
-              <li>עד 850 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[850])} / שנה</strong></li>
-              <li>מעל 850 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES.default)} / שנה</strong></li>
+              <li>501-700 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[700])} / שנה</strong></li>
+              <li>701-850 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES[850])} / שנה</strong></li>
+              <li>851-1,000 עובדים: <strong class="price-highlight">${formatCurrency(LMS_ADDITIONAL_COURSE_PRICES.default)} / שנה</strong></li>
             </ul>
           </div>
           
           <div class="price-extra-card">
-            <h4>רכישת לומדות מדף (ללא LMS)</h4>
+            <h4>רכישת לומדות מדף - קבוצה A</h4>
             <ul>
               <li>לומדה אחת: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[1])}</strong></li>
+              <li>לומדה שנייה: <strong class="price-highlight">${formatCurrency(2600)}</strong></li>
               <li>חבילת 2 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[2])}</strong></li>
               <li>חבילת 3 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_A_PACKAGE_PRICES[3])}</strong></li>
+              <li>כל לומדה נוספת מעבר ל-3: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.purchaseAdditionalCourse)}</strong></li>
+              <li>מניעת הטרדה מינית כולל שינויי החוק: <strong class="price-highlight">${formatCurrency(4500)}</strong></li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>רכישת לומדות מדף - קבוצה B</h4>
+            <ul>
+              <li>לומדה אחת: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_B_PACKAGE_PRICES[1])}</strong></li>
+              <li>לומדה שנייה: <strong class="price-highlight">${formatCurrency(3000)}</strong></li>
+              <li>חבילת 2 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_B_PACKAGE_PRICES[2])}</strong></li>
+              <li>חבילת 3 לומדות: <strong class="price-highlight">${formatCurrency(SHELF_COURSE_GROUP_B_PACKAGE_PRICES[3])}</strong></li>
               <li>כל לומדה נוספת מעבר ל-3: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.purchaseAdditionalCourse)}</strong></li>
             </ul>
           </div>
@@ -1312,9 +1359,48 @@
           <div class="price-extra-card">
             <h4>תוספות ושירותים נלווים</h4>
             <ul>
-              <li><strong>קריינות עברית (AI)</strong>: ${formatCurrency(OTHER_PRICES.voiceoverHebrewPurchase)} (רכישה) / ${formatCurrency(OTHER_PRICES.voiceoverHebrewLms)} (השכרה) ללומדה בודדת. 2 לומדות ומעלה - <strong class="price-highlight-green">כלול במחיר!</strong></li>
-              <li><strong>קריינות אנגלית (AI)</strong>: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.voiceoverEnglish)}</strong> ללומדה.</li>
+              <li><strong>קריינות בעברית</strong>: ${formatCurrency(OTHER_PRICES.voiceoverHebrewPurchase)} בקבוצה A / ${formatCurrency(OTHER_PRICES.voiceoverHebrewLms)} בקבוצה B או בהשכרה. 2 לומדות ומעלה - <strong class="price-highlight-green">כלול במחיר</strong>.</li>
+              <li><strong>קריינות בשפה נוספת באמצעות AI</strong>: <strong class="price-highlight">${formatCurrency(OTHER_PRICES.voiceoverEnglish)}</strong>.</li>
               <li><strong>תרגום לשפה נוספת</strong> (אנגלית, ערבית, רוסית): ${formatCurrency(OTHER_PRICES.translationLms)} ללומדה (עם LMS) / ${formatCurrency(OTHER_PRICES.translationPurchase)} ללומדה (ללא LMS).</li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>לומדות נוספות והתאמות</h4>
+            <ul>
+              <li>לומדת קוד אתי בעברית, על בסיס טמפלייט קיים: <strong>${formatCurrency(6800)}</strong></li>
+              <li>קריינות בעברית ללומדת קוד אתי: <strong>${formatCurrency(450)}</strong></li>
+              <li>אוריינטציה לעובד חדש בעברית: <strong>${formatCurrency(7900)}</strong></li>
+              <li>קריינות בעברית לאוריינטציה: <strong>${formatCurrency(1250)}</strong></li>
+              <li>התאמת צבעי מותג ללומדה קיימת: <strong>${formatCurrency(1800)}</strong></li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>פיתוח לומדה ללא השכרת מערכת</h4>
+            <ul>
+              <li>עד 30 מסכים בעברית: <strong>${formatCurrency(11250)}</strong>; קריינות: ${formatCurrency(1500)}; תרגום: ${formatCurrency(6800)} לשפה; קריינות AI כולל QA: ${formatCurrency(5200)} לשפה.</li>
+              <li>עד 40 מסכים בעברית: <strong>${formatCurrency(13500)}</strong>; קריינות: ${formatCurrency(1800)}; תרגום: ${formatCurrency(7250)} לשפה; קריינות AI כולל QA: ${formatCurrency(5950)} לשפה.</li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>מבחנים וסרטוני Vyond</h4>
+            <ul>
+              <li>מבחן עד 5 שאלות ממאגר קיים: ${formatCurrency(1200)}; כל שאלה נוספת: ${formatCurrency(300)}.</li>
+              <li>מבחן חדש עד 5 שאלות: ${formatCurrency(1800)}; כל שאלה נוספת: ${formatCurrency(450)}.</li>
+              <li>פיתוח סרטון Vyond עד 4 דקות: ${formatCurrency(6950)}; כתוביות בשפה נוספת: ${formatCurrency(950)}.</li>
+              <li>סרטון מדף: ${formatCurrency(4950)}; כתוביות בשפה נוספת: ${formatCurrency(700)}.</li>
+            </ul>
+          </div>
+
+          <div class="price-extra-card">
+            <h4>הטבות ותיקונים</h4>
+            <ul>
+              <li>ניתן לתת עד 10% הנחה לפי שיקול דעת.</li>
+              <li>הטבת LMS: סרטון אבטחת מידע או מניעת הטרדה מינית ללא עלות בשנה הראשונה.</li>
+              <li>תיקוני לומדות: הערכת שעות בתוספת שעה-שעתיים, לפי ${formatCurrency(300)} לשעה. ניתן להעניק הנחה של עד ${formatCurrency(200)} לשעת תיקונים אחת.</li>
+              <li>המחירים אינם כוללים מע"מ.</li>
             </ul>
           </div>
         </div>
@@ -1569,9 +1655,11 @@
     const settingsPayload = {
       ...TEMPLATE_DEFINITIONS,
       priceList: {
+        version: PRICE_LIST_VERSION,
         LMS_SINGLE_COURSE_TIERS,
         LMS_THREE_COURSE_PACKAGE_TIERS,
         SHELF_COURSE_GROUP_A_PACKAGE_PRICES,
+        SHELF_COURSE_GROUP_B_PACKAGE_PRICES,
         LMS_ADDITIONAL_COURSE_PRICES,
         OTHER_PRICES
       }
@@ -1606,11 +1694,12 @@
       };
     });
 
-    if (settings?.priceList) {
+    if (settings?.priceList?.version === PRICE_LIST_VERSION) {
       const pl = settings.priceList;
       if (pl.LMS_SINGLE_COURSE_TIERS) LMS_SINGLE_COURSE_TIERS = pl.LMS_SINGLE_COURSE_TIERS;
       if (pl.LMS_THREE_COURSE_PACKAGE_TIERS) LMS_THREE_COURSE_PACKAGE_TIERS = pl.LMS_THREE_COURSE_PACKAGE_TIERS;
       if (pl.SHELF_COURSE_GROUP_A_PACKAGE_PRICES) SHELF_COURSE_GROUP_A_PACKAGE_PRICES = pl.SHELF_COURSE_GROUP_A_PACKAGE_PRICES;
+      if (pl.SHELF_COURSE_GROUP_B_PACKAGE_PRICES) SHELF_COURSE_GROUP_B_PACKAGE_PRICES = pl.SHELF_COURSE_GROUP_B_PACKAGE_PRICES;
       if (pl.LMS_ADDITIONAL_COURSE_PRICES) LMS_ADDITIONAL_COURSE_PRICES = pl.LMS_ADDITIONAL_COURSE_PRICES;
       if (pl.OTHER_PRICES) OTHER_PRICES = pl.OTHER_PRICES;
     }
@@ -1690,7 +1779,11 @@
     } else if (field.type === "number") {
       quote[field.name] = numberOr(field.value, 0);
       if (field.name === "courseCount") {
-        quote.courseNames = quote.courseNames.slice(0, Math.max(0, Math.round(numberOr(quote.courseCount, 0))));
+        const courseCount = Math.max(0, Math.round(numberOr(quote.courseCount, 0)));
+        quote.courseNames = quote.courseNames.slice(0, courseCount);
+        quote.courseGroups = Array.from({ length: courseCount }, (_, index) =>
+          normalizeCourseGroup(quote.courseGroups[index])
+        );
         renderCourseNameInputs();
       }
     } else {
@@ -1818,18 +1911,24 @@
   }
 
   function handleCourseNameInput(event) {
-    const index = Number(event.target.dataset.courseNameIndex);
+    const index = Number(event.target.dataset.courseNameIndex ?? event.target.dataset.courseGroupIndex);
     if (!Number.isInteger(index)) return;
 
-    const names = Array.from({ length: Math.max(0, Math.round(numberOr(quote.courseCount, 0))) }, (_, itemIndex) => {
+    const courseCount = Math.max(0, Math.round(numberOr(quote.courseCount, 0)));
+    const names = Array.from({ length: courseCount }, (_, itemIndex) => {
       const field = courseNamesList.querySelector(`[data-course-name-index="${itemIndex}"]`);
       return field ? field.value.trim() : quote.courseNames[itemIndex] || "";
     });
+    const groups = Array.from({ length: courseCount }, (_, itemIndex) => {
+      const field = courseNamesList.querySelector(`[data-course-group-index="${itemIndex}"]`);
+      return normalizeCourseGroup(field ? field.value : quote.courseGroups[itemIndex]);
+    });
     quote.courseNames = names;
+    quote.courseGroups = groups;
     if (!quote.pricingItemsEdited) {
       resetPricingItems();
       renderPricingItems();
-    } else if (quote.pricingItems[index]) {
+    } else if (event.target.dataset.courseNameIndex !== undefined && quote.pricingItems[index]) {
       quote.pricingItems[index].title = buildDefaultCourseTitle(quote, index);
       renderPricingItems();
     }
@@ -2265,9 +2364,14 @@
   }
 
   function syncPriceListDiscount() {
-    quote.discountPercent = quote.includeLms && quote.courseCount >= 4 ? 5 : 0;
+    quote.discountPercent = quote.includeLms && quote.courseCount >= 4 ? 10 : 0;
   }
 
+  function formatUsersTier(tier) {
+    return tier.minUsers <= 1
+      ? `עד ${formatNumber(tier.maxUsers)} עובדים`
+      : `${formatNumber(tier.minUsers)}-${formatNumber(tier.maxUsers)} עובדים`;
+  }
   async function showClientLink() {
     const createButton = document.getElementById("createClientLink");
     createButton.disabled = true;
@@ -4412,7 +4516,7 @@
     const rows = [];
     if (!courseCount) return rows;
 
-    if (courseCount >= 3 && q.users <= 700) {
+    if (courseCount >= 3 && hasLmsPackagePrice(q.users)) {
       rows.push({
         title: buildLmsPackageTitle(q, Math.min(courseCount, 3)),
         price: lmsPackagePrice(q.users),
@@ -4454,45 +4558,76 @@
   }
 
   function buildShelfCoursePurchaseRows(q) {
-    const courseCount = Math.max(q.courseCount, q.courseNames.length);
+    const courseCount = Math.max(q.courseCount, q.courseNames.length, q.courseGroups.length);
     const rows = [];
     if (!courseCount) return rows;
 
-    const packageCount = Math.min(courseCount, 3);
-    rows.push({
-      title: packageCount === 1 ? buildDefaultCourseTitle(q, 0) : `חבילת ${packageCount} לומדות מדף מקבוצה A`,
-      price: SHELF_COURSE_GROUP_A_PACKAGE_PRICES[packageCount],
-      kind: "course",
-      notes: buildShelfCourseNotes(q),
-      included: false,
-    });
+    ["A", "B"].forEach((group) => {
+      const courseIndexes = Array.from({ length: courseCount }, (_, index) => index).filter(
+        (index) => normalizeCourseGroup(q.courseGroups[index]) === group
+      );
+      if (!courseIndexes.length) return;
 
-    for (let index = 3; index < courseCount; index += 1) {
+      const packageCount = Math.min(courseIndexes.length, 3);
+      const packagePrices = group === "B" ? SHELF_COURSE_GROUP_B_PACKAGE_PRICES : SHELF_COURSE_GROUP_A_PACKAGE_PRICES;
       rows.push({
-        title: `לומדת מדף נוספת ${index + 1}${courseNameSuffix(q, index)}`,
-        price: OTHER_PRICES.purchaseAdditionalCourse,
+        title:
+          packageCount === 1
+            ? buildPurchaseCourseTitle(q, courseIndexes[0], group)
+            : `חבילת ${packageCount} לומדות מדף מקבוצה ${group}${courseNamesSummary(q, courseIndexes.slice(0, packageCount))}`,
+        price: packagePrices[packageCount],
         kind: "course",
-        notes: "",
+        notes: rows.length ? "" : buildShelfCourseNotes(q),
         included: false,
       });
-    }
+
+      courseIndexes.slice(3).forEach((courseIndex) => {
+        rows.push({
+          title: `לומדת מדף נוספת מקבוצה ${group}${courseNameSuffix(q, courseIndex)}`,
+          price: OTHER_PRICES.purchaseAdditionalCourse,
+          kind: "course",
+          notes: "",
+          included: false,
+        });
+      });
+    });
 
     return rows;
   }
 
+  function buildPurchaseCourseTitle(q, index, group) {
+    return `לומדת מדף מקבוצה ${group}${courseNameSuffix(q, index)}`;
+  }
+
+  function courseNamesSummary(q, indexes) {
+    const names = indexes.map((index) => q.courseNames[index]).filter(Boolean);
+    return names.length ? ` - ${names.join(", ")}` : "";
+  }
+
   function buildDefaultCourseTitle(q, index) {
     const namedSuffix = courseNameSuffix(q, index);
-    const courseLabel = q.courseCount === 1 && !namedSuffix ? "לומדה אחת" : `לומדה ${index + 1}${namedSuffix}`;
+    const groupSuffix = ` מקבוצה ${normalizeCourseGroup(q.courseGroups[index])}`;
+    const courseLabel =
+      q.courseCount === 1 && !namedSuffix
+        ? `לומדה אחת${groupSuffix}`
+        : `לומדה ${index + 1}${groupSuffix}${namedSuffix}`;
     if (q.includeLms) return `מערכת LMS כולל ${courseLabel} עבור ${q.users} עובדים לשנה`;
-    return `לומדת מדף ${index + 1}${namedSuffix}`;
+    return `לומדת מדף ${index + 1}${groupSuffix}${namedSuffix}`;
   }
 
   function buildLmsPackageTitle(q, packageCount) {
-    return `מערכת LMS כולל חבילת ${packageCount} לומדות מדף עבור ${q.users} עובדים לשנה`;
+    const groups = Array.from(
+      new Set(Array.from({ length: packageCount }, (_, index) => normalizeCourseGroup(q.courseGroups[index])))
+    );
+    const groupLabel = groups.length === 1 ? ` מקבוצה ${groups[0]}` : ` מקבוצות ${groups.join(" ו-")}`;
+    return `מערכת LMS כולל חבילת ${packageCount} לומדות מדף${groupLabel} עבור ${q.users} עובדים לשנה`;
   }
 
   function buildAdditionalLmsCourseTitle(q, index) {
-    return `לומדה נוספת ${index + 1}${courseNameSuffix(q, index)} במערכת LMS עבור ${q.users} עובדים לשנה`;
+    return `לומדה נוספת ${index + 1} מקבוצה ${normalizeCourseGroup(q.courseGroups[index])}${courseNameSuffix(
+      q,
+      index
+    )} במערכת LMS עבור ${q.users} עובדים לשנה`;
   }
 
   function courseNameSuffix(q, index) {
@@ -4505,7 +4640,7 @@
       "המחיר כולל הוספת לוגו, שם לקוח וממונה ועד 100 מילים שינוי טקסט.",
       q.bilingualCourse ? "ההצעה מתייחסת ללומדות בשפות עברית ואנגלית." : "ההצעה מתייחסת ללומדות בשפה העברית בלבד.",
       q.includeLms ? "מסלול השכרה שנתי במערכת LMS." : "",
-      q.includeLms && q.courseCount >= 4 ? "בחבילה של 4 לומדות או יותר תינתן הנחה של 5% על החבילה." : "",
+      q.includeLms && q.courseCount >= 4 ? "בחבילה של 4 לומדות או יותר תינתן הנחה של 10% על החבילה." : "",
       q.includeLms ? "בעת חידוש הסכם ניתן להחליף גרסה בהתאם לתנאי המחירון." : "",
     ]
       .filter(Boolean)
@@ -4526,7 +4661,7 @@
 
     return {
       title: pricingOptionLabel(q, "includeHebrewVoiceover", "קריינות בעברית"),
-      price: q.includeLms ? 450 : 350,
+      price: q.includeLms || normalizeCourseGroup(q.courseGroups[0]) === "B" ? 450 : 350,
       notes: "התאמת קריינות בעברית ללומדה אחת.",
       included: false,
     };
@@ -4547,14 +4682,22 @@
     return LMS_ADDITIONAL_COURSE_PRICES.default;
   }
 
+  function hasLmsPackagePrice(users) {
+    return LMS_THREE_COURSE_PACKAGE_TIERS.some((tier) => users >= tier.minUsers && users <= tier.maxUsers);
+  }
+
   function translationPrice(q) {
     const pricePerCourse = q.includeLms ? OTHER_PRICES.translationLms : OTHER_PRICES.translationPurchase;
     return pricePerCourse * Math.max(1, q.courseCount);
   }
 
   function priceFromTier(tiers, users) {
-    const tier = tiers.find((item) => users <= item.maxUsers);
+    const tier = tiers.find((item) => users >= (item.minUsers || 1) && users <= item.maxUsers);
     return tier ? tier.price : tiers[tiers.length - 1].price;
+  }
+
+  function normalizeCourseGroup(value) {
+    return String(value || "").toUpperCase() === "B" ? "B" : "A";
   }
 
   function pricingOptionLabel(q, key, fallback) {
@@ -4628,8 +4771,12 @@
   }
 
   function formatCurrency(value) {
-    const amount = new Intl.NumberFormat("he-IL", { maximumFractionDigits: 0 }).format(numberOr(value, 0));
+    const amount = new Intl.NumberFormat("he-IL", { maximumFractionDigits: 2 }).format(numberOr(value, 0));
     return `${amount} ₪`;
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat("he-IL", { maximumFractionDigits: 0 }).format(numberOr(value, 0));
   }
 
   function formatDate(value) {
