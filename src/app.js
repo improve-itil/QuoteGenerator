@@ -1,7 +1,7 @@
 (function () {
   const STORAGE_KEY = "improve-it-quote-generator";
   const GENERATOR_AUTH_KEY = "improve-it-generator-authenticated";
-  const GENERATOR_PASSWORD = "improve-it2026";
+  const GENERATOR_PASSWORD = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GENERATOR_PASSWORD) || "improve-it2026";
   const SIGNED_ARCHIVE_KEY = "improve-it-signed-quotes";
   const QUOTE_TRACKING_KEY = "improve-it-quote-tracking";
   const TEMPLATE_SETTINGS_KEY = "improve-it-template-settings";
@@ -15,7 +15,7 @@
   const DEFAULT_CLIENT_COMPANY = "ארגון לדוגמה";
   const DEFAULT_COURSE_COUNT = 3;
   const LEGACY_DEFAULT_COURSE_COUNT = 4;
-  const DEFAULT_SUBJECT_PREFIX = "הצעת מחיר עבור שימוש במערכת LMS ובלומדות מדף עבור ";
+  const DEFAULT_SUBJECT_PREFIX = "הנדון: הצעת מחיר עבור שימוש במערכת LMS ובלומדות מדף עבור ";
   const DEFAULT_SALESPERSON_SETTINGS = {
     selectedId: "default",
     advisors: [
@@ -103,7 +103,7 @@
         showTerms: true,
         showCancellation: true,
         pricingPlanLabel: "השכרה - מסלול שנתי",
-        subjectLabel: "הנדון",
+        subject: "הנדון: הצעת מחיר עבור שימוש במערכת LMS ובלומדות מדף עבור ארגון לדוגמה",
       },
       sectionDefinitions: [
         ["showCompanyProfile", "profile", "פרופיל חברה"],
@@ -130,7 +130,7 @@
         showTerms: true,
         showCancellation: false,
         pricingPlanLabel: "תמחור מסחרי",
-        subjectLabel: "הנדון",
+        subject: "הנדון: הצעת מחיר עבור שימוש במערכת LMS ובלומדות מדף עבור ארגון לדוגמה",
       },
       sectionDefinitions: [
         ["showBackground", "background", "רקע"],
@@ -148,6 +148,7 @@
     ["showBackground", "background", "רקע"],
     ["showSolution", "solution", "הפתרון המוצע"],
     ["showWorkProcess", "work", "תהליך העבודה"],
+    ["includeLms", "lms", "שירות LMS"],
     ["showPricing", "pricing", "תמחור"],
     ["showTerms", "terms", "תנאים"],
     ["showCancellation", "cancellation", "ביטולים"],
@@ -202,7 +203,8 @@
     clients: { title: "לקוחות", field: "clientsText" },
     background: { title: "רקע", field: "backgroundText" },
     solution: { title: "פתרון", field: "solutionText" },
-    work: { title: "תהליך עבודה", field: "workProcessText", extraField: "lmsServiceText" },
+    work: { title: "תהליך עבודה", field: "workProcessText" },
+    lms: { title: "שירות LMS", field: "lmsServiceText" },
     pricing: { title: "תמחור - הערות", field: "pricingFinePrintText" },
     terms: { title: "תנאים", field: "termsText" },
     cancellation: { title: "ביטולים", field: "cancellationText" },
@@ -217,7 +219,6 @@
     contactName: "איש קשר לדוגמה",
     contactTitle: "תפקיד לדוגמה",
     subject: buildDefaultSubject(DEFAULT_CLIENT_COMPANY),
-    subjectLabel: "הנדון",
     signatoryName: DEFAULT_SALESPERSON_SETTINGS.advisors[0].name,
     signatoryTitle: DEFAULT_SALESPERSON_SETTINGS.advisors[0].title,
     clientSignerName: "",
@@ -658,7 +659,18 @@
     });
     const template = TEMPLATE_DEFINITIONS[merged.templateId] || TEMPLATE_DEFINITIONS[getFallbackTemplateId()];
     const templateDefaults = template?.defaults || {};
-    merged.subjectLabel = typeof raw.subjectLabel === "string" ? raw.subjectLabel : (templateDefaults.subjectLabel || "הנדון");
+    if (typeof raw.subject === "string") {
+      let subject = raw.subject.trim();
+      const subjectLabel = typeof raw.subjectLabel === "string" ? raw.subjectLabel.trim() : "";
+      if (subjectLabel && !subject.startsWith(subjectLabel)) {
+        subject = `${subjectLabel}: ${subject}`;
+      } else if (!/^(הנדון|הנידון|נושא)\b/i.test(subject)) {
+        subject = `הנדון: ${subject}`;
+      }
+      merged.subject = subject;
+    } else {
+      merged.subject = templateDefaults.subject || buildDefaultSubject(merged.clientCompany);
+    }
 
     const editableFields = [
       "companyProfileText",
@@ -1333,8 +1345,8 @@
               <input data-template-default-text="pricingPlanLabel" type="text" value="${escapeAttr(template.defaults?.pricingPlanLabel || "")}" />
             </label>
             <label>
-              כותרת הנדון ברירת מחדל
-              <input data-template-default-text="subjectLabel" type="text" value="${escapeAttr(template.defaults?.subjectLabel || "הנדון")}" />
+              נושא ההצעה ברירת מחדל (כולל פתיח הנדון)
+              <input data-template-default-text="subject" type="text" value="${escapeAttr(template.defaults?.subject || "")}" />
             </label>
             <div class="template-section-settings">
               <div class="template-section-header">
@@ -3919,14 +3931,11 @@
       )
       .join("");
 
-    const subjectLabelText = typeof q.subjectLabel === "string" ? q.subjectLabel : "הנדון";
-    const subjectHeaderHtml = subjectLabelText ? `${escapeHtml(subjectLabelText)}: ` : "";
-
     return page(`
       <p class="date-line">${formatDate(q.quoteDate)}</p>
       <p class="recipient">לכבוד<br />${escapeHtml(q.contactName)}${contactTitle}<br />${escapeHtml(q.clientCompany)}</p>
       <p>${escapeHtml(greetingName)} שלום רב,</p>
-      <div class="subject">${subjectHeaderHtml}${escapeHtml(q.subject)}</div>
+      <div class="subject">${escapeHtml(q.subject)}</div>
       <p>תודה על פנייתך לקבלת הצעת מחיר ל${escapeHtml(serviceDescription)} עבור ${escapeHtml(q.clientCompany)}, להלן הצעתנו:</p>
       <p>המסמך שלהלן כולל את:</p>
       <table class="toc"><tbody>${toc}</tbody></table>
@@ -4231,7 +4240,7 @@
 
   function buildSectionIndex(q) {
     const template = getTemplate(q);
-    const definitions = [...template.sectionDefinitions];
+    const definitions = template.sectionDefinitions.filter(([, key]) => key !== "lms");
 
     const showLmsAsSection = q.includeLms && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
     
