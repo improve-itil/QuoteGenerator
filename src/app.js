@@ -664,7 +664,7 @@
       const subjectLabel = typeof raw.subjectLabel === "string" ? raw.subjectLabel.trim() : "";
       if (subjectLabel && !subject.startsWith(subjectLabel)) {
         subject = `${subjectLabel}: ${subject}`;
-      } else if (!/^(הנדון|הנידון|נושא)\b/i.test(subject)) {
+      } else if (!/^(הנדון|הנידון|נושא)([\s:]|$)/i.test(subject)) {
         subject = `הנדון: ${subject}`;
       }
       merged.subject = subject;
