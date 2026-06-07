@@ -240,13 +240,11 @@
     includeLms: true,
     lmsServiceTitle: "שירות LMS",
     lmsSectionLocation: "samePage",
-    bilingualCourse: false,
     includeHebrewVoiceover: true,
     includeEnglishVoiceover: false,
     includeTranslation: false,
     pricingOptionLabels: {
       includeLms: "מערכת LMS בענן",
-      bilingualCourse: "עברית ואנגלית",
       includeHebrewVoiceover: "קריינות בעברית",
       includeEnglishVoiceover: "קריינות באנגלית",
       includeTranslation: "תרגום",
@@ -734,7 +732,6 @@
 
     [
       "includeLms",
-      "bilingualCourse",
       "includeHebrewVoiceover",
       "includeEnglishVoiceover",
       "includeTranslation",
@@ -1759,7 +1756,6 @@
       "users",
       "courseCount",
       "includeLms",
-      "bilingualCourse",
       "includeHebrewVoiceover",
       "includeEnglishVoiceover",
       "includeTranslation",
@@ -4673,7 +4669,7 @@
   function buildShelfCourseNotes(q) {
     return [
       "המחיר כולל הוספת לוגו, שם לקוח וממונה ועד 100 מילים שינוי טקסט.",
-      q.bilingualCourse ? "ההצעה מתייחסת ללומדות בשפות עברית ואנגלית." : "ההצעה מתייחסת ללומדות בשפה העברית בלבד.",
+      "ההצעה מתייחסת ללומדות בשפה העברית בלבד.",
       q.includeLms ? "מסלול השכרה שנתי במערכת LMS." : "",
       q.includeLms && q.courseCount >= 4 ? "בחבילה של 4 לומדות או יותר תינתן הנחה של 10% על החבילה." : "",
       q.includeLms ? "בעת חידוש הסכם ניתן להחליף גרסה בהתאם לתנאי המחירון." : "",
