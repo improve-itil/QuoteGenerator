@@ -4525,7 +4525,7 @@
       rows.push({
         title: pricingOptionLabel(q, "includeEnglishVoiceover", "קריינות בשפה נוספת"),
         price: OTHER_PRICES.voiceoverEnglish,
-        notes: "קריינות בשפה נוספת באמצעות AI. המחיר מתייחס לשפה אחת.",
+        notes: "קריינות בשפה נוספת באמצעות AI. המחיר מתייחס ללומדה אחת.",
         included: false,
       });
     }
