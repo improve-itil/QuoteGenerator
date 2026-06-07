@@ -3434,6 +3434,7 @@
         <div class="signed-archive-actions">
           <button type="button" class="compact" data-copy-tracking-id="${escapeAttr(record.id)}">העתקת קישור</button>
           <button type="button" class="compact" data-edit-tracking-id="${escapeAttr(record.id)}">עריכה</button>
+          <button type="button" class="compact" data-download-tracking-id="${escapeAttr(record.id)}">להורדה</button>
           <button type="button" class="compact danger" data-delete-tracking-id="${escapeAttr(record.id)}">מחיקה</button>
         </div>
       </div>
@@ -3463,6 +3464,12 @@
     const editButton = event.target.closest("[data-edit-tracking-id]");
     if (editButton) {
       editTrackedQuote(editButton.dataset.editTrackingId);
+      return;
+    }
+
+    const downloadButton = event.target.closest("[data-download-tracking-id]");
+    if (downloadButton) {
+      await downloadTrackedQuote(downloadButton.dataset.downloadTrackingId, downloadButton);
       return;
     }
 
@@ -3520,6 +3527,34 @@
     signedArchivePanel.hidden = true;
     settingsPanel.hidden = true;
     setCopyFeedback("עורכים קישור קיים");
+  }
+
+  async function downloadTrackedQuote(id, button) {
+    const record = readQuoteTracking().find((item) => item.id === id);
+    const previousQuote = quote;
+    const originalText = button.textContent;
+
+    button.disabled = true;
+    button.textContent = "מכין PDF...";
+
+    try {
+      const linkedQuote = await readSharedQuote(id);
+      const quoteToDownload = linkedQuote || record?.quote;
+      if (!quoteToDownload) {
+        await showAppAlert("לא ניתן להוריד", "לא נמצאה הצעה שמקושרת לרשומת המעקב הזו.");
+        return;
+      }
+
+      await downloadQuotePdf(normalizeQuote(quoteToDownload));
+    } catch (error) {
+      console.error("Could not download tracked quote PDF", error);
+      await showAppAlert("לא ניתן להוריד", "יצירת קובץ ה-PDF נכשלה. נסו שוב בעוד רגע.");
+    } finally {
+      quote = previousQuote;
+      renderPreview();
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 
   async function deleteTrackedQuote(id) {
