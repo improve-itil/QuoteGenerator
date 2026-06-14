@@ -628,12 +628,6 @@
     const hasManualPricingItems = Boolean(raw?.pricingItemsEdited && Array.isArray(raw?.pricingItems));
     const shouldMigrateLegacyCourseCount = isLegacyDefaultCourseCount(raw);
     let merged = { ...sampleQuote, ...(raw || {}) };
-    if (shouldSyncDefaultTexts) {
-      merged = applyDefaultCompanyReferences(merged, raw || {});
-    }
-    if (subjectMatchesDefaultCompany(merged.subject, DEFAULT_CLIENT_COMPANY) && merged.clientCompany !== DEFAULT_CLIENT_COMPANY) {
-      merged.subject = buildDefaultSubject(merged.clientCompany);
-    }
     merged.templateId = TEMPLATE_DEFINITIONS[merged.templateId] ? merged.templateId : getFallbackTemplateId();
     merged.quoteDate = parseIsoDate(merged.quoteDate) ? merged.quoteDate : todayIsoDate();
     merged.validDays = numberOr(merged.validDays, sampleQuote.validDays);
@@ -672,6 +666,9 @@
     } else {
       merged.subject = templateDefaults.subject || buildDefaultSubject(merged.clientCompany);
     }
+    if (shouldSyncDefaultTexts) {
+      merged.subject = replaceDefaultCompanyReferences(merged.subject, merged.clientCompany);
+    }
 
     const editableFields = [
       "companyProfileText",
@@ -695,6 +692,9 @@
         merged[key] = rawValue;
       }
     });
+    if (shouldSyncDefaultTexts) {
+      merged = applyDefaultCompanyReferences(merged);
+    }
     merged.lmsServiceTitle = typeof merged.lmsServiceTitle === "string" ? merged.lmsServiceTitle : "שירות LMS";
     merged.lmsSectionLocation = ["samePage", "newPageAfter", "newPageBefore"].includes(merged.lmsSectionLocation)
       ? merged.lmsSectionLocation
@@ -1847,11 +1847,13 @@
     return String(value || "").split(DEFAULT_CLIENT_COMPANY).join(replacement);
   }
 
-  function applyDefaultCompanyReferences(merged, raw) {
+  function applyDefaultCompanyReferences(merged) {
     const fields = ["backgroundText", "solutionText"];
     fields.forEach((field) => {
-      if (shouldUseCompanySpecificDefaultText(raw, field) || hasLikelyCorruptedCompanyReplacement(raw[field], raw.clientCompany, field)) {
+      if (hasLikelyCorruptedCompanyReplacement(merged[field], merged.clientCompany, field)) {
         merged[field] = replaceDefaultCompanyReferences(sampleQuote[field], merged.clientCompany);
+      } else {
+        merged[field] = replaceDefaultCompanyReferences(merged[field], merged.clientCompany);
       }
     });
     return merged;
@@ -1874,13 +1876,6 @@
       hasLikelyCorruptedCompanyReplacement(text, previousCompany, field) ||
       hasLikelyCorruptedCompanyReplacement(text, quote.clientCompany, field)
     );
-  }
-
-  function shouldUseCompanySpecificDefaultText(raw, field) {
-    if (!Object.prototype.hasOwnProperty.call(raw || {}, field)) return true;
-    const value = String(raw[field] || "").trim();
-    if (!value) return true;
-    return value === sampleQuote[field] || value === replaceDefaultCompanyReferences(sampleQuote[field], raw.clientCompany);
   }
 
   function hasLikelyCorruptedCompanyReplacement(value, company, field) {
