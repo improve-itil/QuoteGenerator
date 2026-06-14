@@ -99,6 +99,7 @@
         showBackground: true,
         showSolution: true,
         showWorkProcess: true,
+        showLmsService: true,
         showPricing: true,
         showTerms: true,
         showCancellation: true,
@@ -126,6 +127,7 @@
         showBackground: true,
         showSolution: true,
         showWorkProcess: false,
+        showLmsService: true,
         showPricing: true,
         showTerms: true,
         showCancellation: false,
@@ -148,7 +150,7 @@
     ["showBackground", "background", "רקע"],
     ["showSolution", "solution", "הפתרון המוצע"],
     ["showWorkProcess", "work", "תהליך העבודה"],
-    ["includeLms", "lms", "שירות LMS"],
+    ["showLmsService", "lms", "שירות LMS"],
     ["showPricing", "pricing", "תמחור"],
     ["showTerms", "terms", "תנאים"],
     ["showCancellation", "cancellation", "ביטולים"],
@@ -264,6 +266,7 @@
     showBackground: true,
     showSolution: true,
     showWorkProcess: true,
+    showLmsService: true,
     showPricing: true,
     showTerms: true,
     showCancellation: true,
@@ -744,6 +747,7 @@
       "showBackground",
       "showSolution",
       "showWorkProcess",
+      "showLmsService",
       "showPricing",
       "showTerms",
       "showCancellation",
@@ -4068,7 +4072,8 @@
     if (q.showClients) pages.push(renderClientsPage(q));
     if (q.showBackground || q.showSolution) pages.push(renderBackgroundSolutionPage(q, sections));
 
-    const showLmsAsNewPage = q.includeLms && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
+    const showLmsAsNewPage =
+      q.includeLms && q.showLmsService && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
 
     if (showLmsAsNewPage && q.lmsSectionLocation === "newPageBefore") {
       pages.push(renderLmsServicePage(q, sections));
@@ -4195,7 +4200,7 @@
       processBullets.push("תיקוף התרגום: תיקוף ואישור התרגום.");
     }
 
-    const showLmsOnSamePage = q.includeLms && q.lmsSectionLocation === "samePage";
+    const showLmsOnSamePage = q.includeLms && q.showLmsService && q.lmsSectionLocation === "samePage";
     const lmsBlock = showLmsOnSamePage
       ? `
         <section class="content-section">
@@ -4414,11 +4419,12 @@
     const template = getTemplate(q);
     const definitions = template.sectionDefinitions.filter(([, key]) => key !== "lms");
 
-    const showLmsAsSection = q.includeLms && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
+    const showLmsAsSection =
+      q.includeLms && q.showLmsService && (q.lmsSectionLocation !== "samePage" || !q.showWorkProcess);
     
     if (showLmsAsSection) {
       const lmsTitle = q.lmsServiceTitle || "שירות LMS";
-      const lmsDef = ["includeLms", "lms", lmsTitle];
+      const lmsDef = ["showLmsService", "lms", lmsTitle];
       
       const workIndex = definitions.findIndex(([, key]) => key === "work");
       if (q.lmsSectionLocation === "newPageBefore") {
